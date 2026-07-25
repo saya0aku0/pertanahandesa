@@ -47,8 +47,9 @@ export function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-sm bg-white rounded-xl shadow-sm border p-6 space-y-4">
         <div className="text-center">
-          <h1 className="text-xl font-bold text-primary-800">Riwayat Tanah Desa</h1>
-          <p className="text-sm text-gray-500">Masuk untuk melanjutkan</p>
+          <h1 className="text-xl font-bold text-primary-800">Riwayat Surat Tanah &amp; Kepemilikan</h1>
+          <p className="text-base font-bold text-primary-800">DESA PUTUKREJO</p>
+          <p className="text-sm text-gray-500 mt-1">Masuk untuk melanjutkan</p>
         </div>
 
         {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
