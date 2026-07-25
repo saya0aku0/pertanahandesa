@@ -1,120 +1,102 @@
 import { useState } from 'react';
-import { Table, TableColumn } from '@/components/Table';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { useNavigate } from 'react-router-dom';
+import { login } from '@/firebase/auth';
+import { getEmailByUsername } from '@/modules/kelola-user/user.service';
 import { Button } from '@/components/Button';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
-import { UserForm } from './UserForm';
-import { deleteUser } from './user.service';
-import { AppUser } from '@/modules/auth/auth.types';
+import { Modal } from '@/components/Modal';
+import { ForgotPasswordForm } from './ForgotPasswordForm';
 
-const ROLE_LABEL: Record<string, string> = {
-  superadmin: 'Superadmin',
-  owner: 'Owner',
-  staff: 'Staff'
-};
+export function LoginPage() {
+  const [identifier, setIdentifier] = useState(''); // boleh diisi email ATAU username
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const navigate = useNavigate();
 
-/** Menu 3: Kelola User — daftar akun Owner/Staff/Superadmin (§10.4) */
-export function KelolaUserPage() {
-  const { docs, loading, error, hasMore, loadMore, reload } = useFirestoreCollection<AppUser>(
-    'users',
-    [],
-    25
-  );
-
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<AppUser | undefined>(undefined);
-  const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  const columns: TableColumn<AppUser>[] = [
-    { key: 'nama', header: 'Nama', render: (r) => r.nama },
-    { key: 'username', header: 'Username', render: (r) => r.username ?? '-' },
-    { key: 'email', header: 'Email', render: (r) => r.email },
-    { key: 'role', header: 'Role', render: (r) => ROLE_LABEL[r.role] ?? r.role },
-    {
-      key: 'aksi',
-      header: 'Aksi',
-      render: (r) => (
-        <div className="flex gap-3">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditing(r);
-              setFormOpen(true);
-            }}
-            className="text-primary-700 text-sm hover:underline min-h-[44px]"
-          >
-            Edit
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setDeleteTarget(r);
-            }}
-            className="text-red-600 text-sm hover:underline min-h-[44px]"
-          >
-            Hapus
-          </button>
-        </div>
-      )
-    }
-  ];
-
-  async function handleHapus() {
-    if (!deleteTarget) return;
-    setDeleting(true);
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
     try {
-      await deleteUser(deleteTarget.id);
-      await reload();
+      const input = identifier.trim();
+      let emailToUse = input;
+
+      // Auto-deteksi: kalau tidak mengandung '@', anggap ini username,
+      // cari dulu email pasangannya di Firestore sebelum login ke Firebase Auth.
+      if (!input.includes('@')) {
+        const foundEmail = await getEmailByUsername(input);
+        if (!foundEmail) {
+          setError('Username tidak ditemukan.');
+          setLoading(false);
+          return;
+        }
+        emailToUse = foundEmail;
+      }
+
+      await login(emailToUse, password);
+      navigate('/master-tanah');
+    } catch (err) {
+      setError('Email/Username atau password salah.');
     } finally {
-      setDeleting(false);
-      setDeleteTarget(null);
+      setLoading(false);
     }
   }
 
-  if (loading && docs.length === 0) return <LoadingSpinner />;
-  if (error) return <p className="text-red-600 text-sm">{error}</p>;
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold">Kelola User</h1>
-        <Button
-          onClick={() => {
-            setEditing(undefined);
-            setFormOpen(true);
-          }}
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="w-full max-w-sm bg-white rounded-xl shadow-sm border p-6 space-y-4">
+        <div className="text-center">
+          <h1 className="text-xl font-bold text-primary-800">Riwayat Tanah Desa</h1>
+          <p className="text-sm text-gray-500">Masuk untuk melanjutkan</p>
+        </div>
+
+        {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email / Username
+            </label>
+            <input
+              type="text"
+              required
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              className="w-full border rounded-lg p-3 min-h-[44px]"
+              autoComplete="username"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border rounded-lg p-3 min-h-[44px]"
+            />
+          </div>
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? 'Memproses...' : 'Masuk'}
+          </Button>
+        </form>
+
+        <button
+          onClick={() => setShowForgot(true)}
+          className="text-sm text-primary-700 hover:underline w-full text-center min-h-[44px]"
         >
-          + Tambah User
-        </Button>
+          Lupa Password?
+        </button>
+
+        <p className="text-xs text-gray-400 text-center pt-2 border-t">
+          {'</> Application By : Hikimori-Project @2026'}
+        </p>
       </div>
 
-      <Table columns={columns} data={docs} keyExtractor={(r) => r.id} emptyMessage="Belum ada user." />
-      {hasMore && (
-        <div className="text-center">
-          <Button variant="secondary" onClick={loadMore} disabled={loading}>
-            {loading ? 'Memuat...' : 'Muat Lebih Banyak'}
-          </Button>
-        </div>
-      )}
-
-      <UserForm
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        onSaved={reload}
-        existing={editing}
-      />
-
-      <ConfirmDialog
-        open={!!deleteTarget}
-        title="Hapus User"
-        message={`Yakin ingin menghapus user "${deleteTarget?.nama}"? Catatan: ini hanya menghapus profil, akun login perlu dinonaktifkan manual di Firebase Console.`}
-        confirmLabel="Ya, hapus"
-        loading={deleting}
-        onCancel={() => setDeleteTarget(null)}
-        onConfirm={handleHapus}
-      />
+      <Modal open={showForgot} onClose={() => setShowForgot(false)} title="Lupa Password">
+        <ForgotPasswordForm />
+      </Modal>
     </div>
   );
 }
