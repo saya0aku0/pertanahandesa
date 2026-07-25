@@ -29,6 +29,20 @@ export async function getDocById<T = DocumentData>(collectionName: string, id: s
   return { id: snap.id, ...(snap.data() as T) };
 }
 
+// Cari 1 dokumen berdasarkan field tertentu (mis. cari user berdasarkan "username")
+// Dipakai untuk resolve username -> email saat login dua-cara (Email/Username)
+export async function getDocByField<T = DocumentData>(
+  collectionName: string,
+  field: string,
+  value: unknown
+): Promise<(T & { id: string }) | null> {
+  const q = query(col(collectionName), where(field, '==', value), fsLimit(1));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...(d.data() as T) };
+}
+
 export async function getPaginated<T = DocumentData>(
   collectionName: string,
   constraints: QueryConstraint[] = [],

@@ -1,4 +1,4 @@
-import { createDoc, deleteDocById, updateDocById, getPaginated } from '@/firebase/firestore';
+import { createDoc, deleteDocById, updateDocById, getPaginated, getDocByField } from '@/firebase/firestore';
 import { createAccount } from '@/firebase/auth';
 import { AppUser, UserRole } from '@/modules/auth/auth.types';
 
@@ -7,6 +7,7 @@ const COLLECTION = 'users';
 export interface UserFormInput {
   nama: string;
   email: string;
+  username: string;
   noHp?: string;
   role: UserRole;
   password?: string; // hanya dipakai saat membuat akun baru
@@ -24,6 +25,7 @@ export async function createUser(input: UserFormInput) {
   await createDoc(COLLECTION, {
     nama: input.nama,
     email: input.email,
+    username: input.username,
     noHp: input.noHp ?? '',
     role: input.role,
     uid: credential.user.uid
@@ -44,4 +46,15 @@ export async function deleteUser(id: string) {
 
 export async function getUserPage(pageSize = 25, cursor?: unknown) {
   return getPaginated<AppUser>(COLLECTION, [], pageSize, cursor);
+}
+
+/**
+ * Cari email berdasarkan username — dipakai untuk fitur login dua-cara (Email/Username).
+ * Firebase Authentication hanya mendukung email+password secara native, jadi
+ * saat user login pakai username, kita cari dulu email pasangannya di Firestore,
+ * lalu login seperti biasa memakai email tersebut.
+ */
+export async function getEmailByUsername(username: string): Promise<string | null> {
+  const user = await getDocByField<AppUser>(COLLECTION, 'username', username);
+  return user?.email ?? null;
 }

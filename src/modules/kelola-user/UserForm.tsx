@@ -22,6 +22,7 @@ export function UserForm({ open, onClose, onSaved, existing }: UserFormProps) {
   const [form, setForm] = useState<UserFormInput>({
     nama: existing?.nama ?? '',
     email: existing?.email ?? '',
+    username: existing?.username ?? '',
     noHp: existing?.noHp ?? '',
     role: existing?.role ?? 'staff',
     password: ''
@@ -35,8 +36,8 @@ export function UserForm({ open, onClose, onSaved, existing }: UserFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.nama || !form.email) {
-      setError('Nama dan email wajib diisi.');
+    if (!form.nama || !form.email || !form.username) {
+      setError('Nama, email, dan username wajib diisi.');
       return;
     }
     if (!existing && (!form.password || form.password.length < 6)) {
@@ -51,6 +52,7 @@ export function UserForm({ open, onClose, onSaved, existing }: UserFormProps) {
         await updateUser(existing.id, {
           nama: form.nama,
           email: form.email,
+          username: form.username,
           noHp: form.noHp,
           role: form.role
         });
@@ -79,6 +81,20 @@ export function UserForm({ open, onClose, onSaved, existing }: UserFormProps) {
             className="w-full border rounded-lg p-3 min-h-[44px]"
             required
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Username *</label>
+          <input
+            value={form.username}
+            onChange={(e) => update('username', e.target.value.trim())}
+            className="w-full border rounded-lg p-3 min-h-[44px]"
+            placeholder="mis. superadmin1"
+            autoCapitalize="none"
+            required
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Dipakai untuk login tanpa email. Pastikan unik antar user.
+          </p>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>

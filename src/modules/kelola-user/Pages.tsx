@@ -29,6 +29,7 @@ export function KelolaUserPage() {
 
   const columns: TableColumn<AppUser>[] = [
     { key: 'nama', header: 'Nama', render: (r) => r.nama },
+    { key: 'username', header: 'Username', render: (r) => r.username ?? '-' },
     { key: 'email', header: 'Email', render: (r) => r.email },
     { key: 'role', header: 'Role', render: (r) => ROLE_LABEL[r.role] ?? r.role },
     {
