@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table, TableColumn } from '@/components/Table';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -9,16 +10,35 @@ import { Tanah } from './tanah.types';
 export function TanahTable() {
   const { docs, loading, error, hasMore, loadMore } = useFirestoreCollection<Tanah>('tanah', [], 25);
   const navigate = useNavigate();
+  const [tampilkanArsip, setTampilkanArsip] = useState(false);
+
+  // Bidang yang sudah "sudah-digabung" disembunyikan dari tabel utama secara default
+  // (data tetap ada di database, cuma diarsipkan dari tampilan supaya tidak membingungkan).
+  const jumlahArsip = docs.filter((d) => d.statusGabung === 'sudah-digabung').length;
+  const visibleDocs = tampilkanArsip
+    ? docs
+    : docs.filter((d) => d.statusGabung !== 'sudah-digabung');
 
   const columns: TableColumn<Tanah>[] = [
     { key: 'nomorSertifikat', header: 'No. Sertifikat', render: (r) => r.nomorSertifikat },
+    {
+      key: 'tanggalTerbitSertifikat',
+      header: 'Tgl. Terbit',
+      render: (r) => r.tanggalTerbitSertifikat ?? '-'
+    },
+    { key: 'nomorSuratUkur', header: 'No. Surat Ukur', render: (r) => r.nomorSuratUkur ?? '-' },
     { key: 'lokasi', header: 'Lokasi', render: (r) => r.lokasi },
     { key: 'luas', header: 'Luas (m²)', render: (r) => r.luas.toLocaleString('id-ID') },
     { key: 'pemilikSaatIni', header: 'Pemilik Saat Ini', render: (r) => r.pemilikSaatIni },
     {
       key: 'induk',
       header: 'Asal Bidang',
-      render: (r) => (r.parentTanahId ? 'Hasil Pecah Lahan' : 'Bidang Awal')
+      render: (r) => {
+        if (r.statusGabung === 'sudah-digabung') return 'Sudah Digabung (Arsip)';
+        if (r.parentTanahIds && r.parentTanahIds.length > 0) return 'Hasil Penyatuan Lahan';
+        if (r.parentTanahId) return 'Hasil Pecah Lahan';
+        return 'Bidang Awal';
+      }
     }
   ];
 
@@ -27,9 +47,19 @@ export function TanahTable() {
 
   return (
     <div className="space-y-4">
+      {jumlahArsip > 0 && (
+        <button
+          onClick={() => setTampilkanArsip((v) => !v)}
+          className="text-sm text-primary-700 hover:underline"
+        >
+          {tampilkanArsip
+            ? 'Sembunyikan bidang yang sudah digabung'
+            : `Tampilkan ${jumlahArsip} bidang yang sudah digabung (arsip)`}
+        </button>
+      )}
       <Table
         columns={columns}
-        data={docs}
+        data={visibleDocs}
         keyExtractor={(r) => r.id}
         onRowClick={(r) => navigate(`/master-tanah/${r.id}`)}
         emptyMessage="Belum ada data bidang tanah."

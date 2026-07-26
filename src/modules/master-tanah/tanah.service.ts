@@ -39,9 +39,30 @@ export async function getAnakBidang(parentTanahId: string) {
 }
 
 /**
+ * Kebalikan dari getAnakBidang — cari bidang-bidang SUMBER yang menjadi asal
+ * suatu bidang hasil PENYATUAN LAHAN (dipakai TanahSilsilah untuk telusuri ke bawah).
+ */
+export async function getBidangSumberGabungan(tanahId: string): Promise<Tanah[]> {
+  const tanah = await getTanah(tanahId);
+  if (!tanah?.parentTanahIds || tanah.parentTanahIds.length === 0) return [];
+  const hasil = await Promise.all(tanah.parentTanahIds.map((id) => getTanah(id)));
+  return hasil.filter((t): t is Tanah => t !== null);
+}
+
+/**
+ * Tandai bidang sebagai "sudah digabung" ke bidang lain — TIDAK MENGHAPUS data apapun,
+ * supaya penelusuran silsilah pemilik tetap ada selamanya (sesuai keputusan produk).
+ */
+export async function tandaiBidangSudahDigabung(tanahId: string, mergedIntoTanahId: string) {
+  return updateTanah(tanahId, { statusGabung: 'sudah-digabung', mergedIntoTanahId });
+}
+
+/**
  * Search bidang tanah untuk dropdown searchable di form Transaksi (§10.3).
  * Query berdasarkan nomorSertifikat (prefix match sederhana, hemat read dg limit).
  * Debounce ±400ms diterapkan di komponen pemanggil (useDebounce).
+ * Bidang yang sudah 'sudah-digabung' tetap ikut muncul di hasil pencarian umum
+ * (supaya tetap bisa ditelusuri), tapi disaring di tabel utama Master Tanah.
  */
 export async function searchTanah(keyword: string, maxResults = 10): Promise<Tanah[]> {
   if (!keyword.trim()) return [];

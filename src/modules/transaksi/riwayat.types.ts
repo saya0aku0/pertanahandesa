@@ -1,4 +1,4 @@
-export type JenisPeristiwa = 'jual-beli' | 'waris' | 'pecah-lahan' | 'belum-ada-transaksi';
+export type JenisPeristiwa = 'jual-beli' | 'waris' | 'pecah-lahan' | 'penyatuan-lahan' | 'belum-ada-transaksi';
 
 export interface Riwayat {
   id: string;
@@ -10,6 +10,9 @@ export interface Riwayat {
   pembeli?: string;
   keterangan?: string;
   dokumenUrls: string[];
+  // Khusus jenisPeristiwa = 'penyatuan-lahan': merujuk bidang gabungan hasil akhir,
+  // diisi belakangan setelah bidang baru berhasil dibuat (lihat riwayat.service.ts)
+  tanahGabunganId?: string;
   createdAt?: unknown;
 }
 

@@ -13,11 +13,13 @@ export interface GuardResult {
 
 /**
  * Sistem Peringatan Relasi Data (§11) — WAJIB dijalankan sebelum eksekusi
- * hapus/edit data kritikal di modul Transaksi. Tiga skenario:
+ * hapus/edit data kritikal di modul Transaksi. Skenario:
  *
  * 1. Hapus riwayat "Pecah Lahan" yang sudah punya bidang anak
  * 2. Hapus/edit bidang tanah induk yang masih punya bidang anak
  * 3. Hapus riwayat yang membuat pemilikSaatIni tidak sinkron (riwayat terbaru)
+ * 4. Hapus riwayat "Penyatuan Lahan" yang sudah menghasilkan bidang gabungan
+ * 5. Edit bidang sumber yang sudah "sudah-digabung" ke bidang lain
  *
  * Semua fungsi mengembalikan GuardResult. Jika perluKonfirmasi = true,
  * UI WAJIB menampilkan ConfirmDialog.tsx sebelum melanjutkan aksi.
@@ -45,7 +47,23 @@ export async function cekHapusRiwayatPecahLahan(riwayat: Riwayat): Promise<Guard
   };
 }
 
-/** Skenario 2: cek apakah bidang tanah ini adalah induk dari bidang lain */
+/** Skenario 4: cek apakah riwayat "penyatuan-lahan" ini sudah menghasilkan bidang gabungan */
+export async function cekHapusRiwayatPenyatuanLahan(riwayat: Riwayat): Promise<GuardResult> {
+  if (riwayat.jenisPeristiwa !== 'penyatuan-lahan' || !riwayat.tanahGabunganId) {
+    return { perluKonfirmasi: false, pesan: '' };
+  }
+
+  const tanahGabungan = await getTanah(riwayat.tanahGabunganId);
+
+  return {
+    perluKonfirmasi: true,
+    pesan: `⚠️ Riwayat ini adalah bagian dari jejak penyatuan lahan menjadi bidang "${
+      tanahGabungan?.nomorSertifikat ?? riwayat.tanahGabunganId
+    }". Menghapusnya TIDAK akan membatalkan penyatuan atau menghapus bidang gabungan, tapi jejak historisnya di bidang sumber ini akan hilang. Lanjutkan hapus?`
+  };
+}
+
+/** Skenario 2: cek apakah bidang tanah ini adalah induk dari bidang lain (hasil pecah lahan) */
 export async function cekHapusEditBidangInduk(tanahId: string): Promise<GuardResult> {
   const anakBidang = await getAnakBidang(tanahId);
   const jumlahAnak = anakBidang.length;
@@ -57,6 +75,23 @@ export async function cekHapusEditBidangInduk(tanahId: string): Promise<GuardRes
   return {
     perluKonfirmasi: true,
     pesan: `⚠️ Bidang tanah ini adalah induk dari ${jumlahAnak} bidang hasil pecahan. Menghapus/mengubah datanya bisa membuat data anak kehilangan rujukan induk yang benar. Lanjutkan?`
+  };
+}
+
+/** Skenario 5: cek apakah bidang ini sudah menjadi sumber penyatuan (statusGabung = sudah-digabung) */
+export async function cekEditBidangSudahDigabung(tanahId: string): Promise<GuardResult> {
+  const tanah = await getTanah(tanahId);
+  if (!tanah || tanah.statusGabung !== 'sudah-digabung') {
+    return { perluKonfirmasi: false, pesan: '' };
+  }
+
+  const tanahGabungan = tanah.mergedIntoTanahId ? await getTanah(tanah.mergedIntoTanahId) : null;
+
+  return {
+    perluKonfirmasi: true,
+    pesan: `⚠️ Bidang ini sudah ditandai "sudah digabung" menjadi bidang "${
+      tanahGabungan?.nomorSertifikat ?? tanah.mergedIntoTanahId
+    }". Bidang ini sebaiknya tidak diubah lagi karena berfungsi sebagai arsip riwayat. Lanjutkan mengubah?`
   };
 }
 
@@ -106,6 +141,7 @@ export async function cekHapusRiwayatTerbaru(riwayat: Riwayat): Promise<GuardRes
 export async function jalankanGuardHapusRiwayat(riwayat: Riwayat): Promise<GuardResult[]> {
   const hasil = await Promise.all([
     cekHapusRiwayatPecahLahan(riwayat),
+    cekHapusRiwayatPenyatuanLahan(riwayat),
     cekHapusRiwayatTerbaru(riwayat)
   ]);
   return hasil.filter((r) => r.perluKonfirmasi);
@@ -113,6 +149,9 @@ export async function jalankanGuardHapusRiwayat(riwayat: Riwayat): Promise<Guard
 
 /** Jalankan guard untuk aksi hapus/edit bidang tanah (Master Tanah) */
 export async function jalankanGuardEditHapusTanah(tanahId: string): Promise<GuardResult[]> {
-  const hasil = await cekHapusEditBidangInduk(tanahId);
-  return hasil.perluKonfirmasi ? [hasil] : [];
+  const hasil = await Promise.all([
+    cekHapusEditBidangInduk(tanahId),
+    cekEditBidangSudahDigabung(tanahId)
+  ]);
+  return hasil.filter((r) => r.perluKonfirmasi);
 }

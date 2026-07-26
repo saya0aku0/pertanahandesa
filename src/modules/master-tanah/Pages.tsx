@@ -48,12 +48,28 @@ export function MasterTanahDetailPage() {
       <div>
         <h1 className="text-lg font-bold">{tanah.nomorSertifikat}</h1>
         <p className="text-sm text-gray-500">{tanah.lokasi}</p>
+        {tanah.statusGabung === 'sudah-digabung' && (
+          <span className="inline-block mt-2 text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">
+            Arsip — Sudah Digabung
+          </span>
+        )}
       </div>
 
       <div className="bg-white border rounded-xl p-4 space-y-2 text-sm">
+        {tanah.tanggalTerbitSertifikat && (
+          <div className="flex justify-between">
+            <span className="text-gray-500">Tanggal Terbit / Disahkan</span>
+            <span className="font-medium">{tanah.tanggalTerbitSertifikat}</span>
+          </div>
+        )}
         <div className="flex justify-between">
           <span className="text-gray-500">Luas</span>
-          <span className="font-medium">{tanah.luas.toLocaleString('id-ID')} m²</span>
+          <span className="font-medium">
+            {tanah.luas.toLocaleString('id-ID')} m²
+            {tanah.panjang && tanah.lebar && (
+              <span className="text-gray-400"> ({tanah.panjang}m × {tanah.lebar}m)</span>
+            )}
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-500">Pemilik Saat Ini</span>
@@ -63,6 +79,43 @@ export function MasterTanahDetailPage() {
           <div className="flex justify-between">
             <span className="text-gray-500">No. Surat Ukur</span>
             <span className="font-medium">{tanah.nomorSuratUkur}</span>
+          </div>
+        )}
+        {tanah.tanggalUkur && (
+          <div className="flex justify-between">
+            <span className="text-gray-500">Tanggal Ukur</span>
+            <span className="font-medium">{tanah.tanggalUkur}</span>
+          </div>
+        )}
+        {tanah.petugasUkur && (
+          <div className="flex justify-between">
+            <span className="text-gray-500">Petugas Ukur</span>
+            <span className="font-medium">{tanah.petugasUkur}</span>
+          </div>
+        )}
+        {tanah.lat != null && tanah.long != null && (
+          <div className="flex justify-between">
+            <span className="text-gray-500">Koordinat</span>
+            <span className="font-medium">
+              {tanah.lat}, {tanah.long}
+              {tanah.googleMapsLink && (
+                <>
+                  {' '}
+                  <a
+                    href={
+                      tanah.googleMapsLink.startsWith('http')
+                        ? tanah.googleMapsLink
+                        : `https://www.google.com/maps?q=${tanah.lat},${tanah.long}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary-700 hover:underline"
+                  >
+                    (buka peta)
+                  </a>
+                </>
+              )}
+            </span>
           </div>
         )}
       </div>

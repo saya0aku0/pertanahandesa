@@ -8,12 +8,14 @@ import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
 import { deleteRiwayat } from './riwayat.service';
 import { jalankanGuardHapusRiwayat, GuardResult } from './relasiGuard';
 import { RiwayatForm } from './RiwayatForm';
+import { PenyatuanLahanForm } from './PenyatuanLahanForm';
 import { Riwayat } from './riwayat.types';
 
 const JENIS_LABEL: Record<string, string> = {
   'jual-beli': 'Jual-Beli',
   waris: 'Waris',
   'pecah-lahan': 'Pecah Lahan',
+  'penyatuan-lahan': 'Penyatuan Lahan',
   'belum-ada-transaksi': 'Belum Ada Transaksi'
 };
 
@@ -99,9 +101,14 @@ export function TransaksiListPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-lg font-bold">Transaksi</h1>
-        <Button onClick={() => navigate('/transaksi/tambah')}>+ Catat Transaksi</Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => navigate('/transaksi/penyatuan')}>
+            + Penyatuan Lahan
+          </Button>
+          <Button onClick={() => navigate('/transaksi/tambah')}>+ Catat Transaksi</Button>
+        </div>
       </div>
 
       <Table
@@ -159,6 +166,15 @@ export function TransaksiTambahPage() {
     <div className="space-y-4">
       <h1 className="text-lg font-bold">Catat Transaksi Baru</h1>
       <RiwayatForm />
+    </div>
+  );
+}
+
+export function TransaksiPenyatuanPage() {
+  return (
+    <div className="space-y-4">
+      <h1 className="text-lg font-bold">Penyatuan Lahan</h1>
+      <PenyatuanLahanForm />
     </div>
   );
 }
