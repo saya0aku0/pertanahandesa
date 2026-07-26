@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table, TableColumn } from '@/components/Table';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Button } from '@/components/Button';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PinDialog } from '@/components/PinDialog';
+import { ListControls } from '@/components/ListControls';
 import { usePinGuard } from '@/hooks/usePinGuard';
 import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
 import { deleteRiwayat } from './riwayat.service';
@@ -23,6 +24,19 @@ const JENIS_LABEL: Record<string, string> = {
   'belum-ada-transaksi': 'Belum Ada Transaksi'
 };
 
+const JENIS_FILTER_OPTIONS = Object.entries(JENIS_LABEL).map(([value, label]) => ({ value, label }));
+
+const STATUS_FILTER_OPTIONS = [
+  { value: 'final', label: 'Final' },
+  { value: 'draft', label: 'Pending (Draft)' }
+];
+
+const SORT_OPTIONS = [
+  { value: 'tanggalKejadian', label: 'Tanggal' },
+  { value: 'jenisPeristiwa', label: 'Jenis Peristiwa' },
+  { value: 'pemilikBaru', label: 'Pemilik Baru' }
+];
+
 /** Menu 2: Transaksi — daftar semua riwayat, urut tanggal terbaru (§3, §10.3) */
 export function TransaksiListPage() {
   const navigate = useNavigate();
@@ -38,6 +52,47 @@ export function TransaksiListPage() {
   const [confirmSimple, setConfirmSimple] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const { requestPin, pinDialogProps } = usePinGuard();
+
+  // SearchBar, Filter, Sort By — bekerja di sisi klien terhadap data yang sudah ter-load
+  const [keyword, setKeyword] = useState('');
+  const [jenisFilter, setJenisFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [sortBy, setSortBy] = useState('tanggalKejadian');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const visibleDocs = useMemo(() => {
+    const kw = keyword.trim().toLowerCase();
+    let hasil = docs.filter((r) => {
+      const cocokKeyword =
+        !kw ||
+        r.pemilikBaru?.nama?.toLowerCase().includes(kw) ||
+        r.pemilikSebelumnya?.nama?.toLowerCase().includes(kw) ||
+        r.keterangan?.toLowerCase().includes(kw) ||
+        r.pembeli?.toLowerCase().includes(kw) ||
+        (JENIS_LABEL[r.jenisPeristiwa] ?? r.jenisPeristiwa).toLowerCase().includes(kw);
+      const cocokJenis = !jenisFilter || r.jenisPeristiwa === jenisFilter;
+      const cocokStatus = !statusFilter || r.status === statusFilter;
+      return cocokKeyword && cocokJenis && cocokStatus;
+    });
+
+    hasil = [...hasil].sort((a, b) => {
+      let av = '';
+      let bv = '';
+      if (sortBy === 'tanggalKejadian') {
+        av = a.tanggalKejadian ?? '';
+        bv = b.tanggalKejadian ?? '';
+      } else if (sortBy === 'jenisPeristiwa') {
+        av = JENIS_LABEL[a.jenisPeristiwa] ?? a.jenisPeristiwa;
+        bv = JENIS_LABEL[b.jenisPeristiwa] ?? b.jenisPeristiwa;
+      } else if (sortBy === 'pemilikBaru') {
+        av = a.pemilikBaru?.nama ?? '';
+        bv = b.pemilikBaru?.nama ?? '';
+      }
+      return sortDir === 'asc' ? av.localeCompare(bv, 'id-ID') : bv.localeCompare(av, 'id-ID');
+    });
+
+    return hasil;
+  }, [docs, keyword, jenisFilter, statusFilter, sortBy, sortDir]);
 
   const columns: TableColumn<Riwayat>[] = [
     { key: 'tanggal', header: 'Tanggal', render: (r) => r.tanggalKejadian },
@@ -145,9 +200,36 @@ export function TransaksiListPage() {
         </div>
       </div>
 
+      <ListControls
+        searchValue={keyword}
+        onSearchChange={setKeyword}
+        searchPlaceholder="Cari Pemilik / Pembeli / Keterangan / Jenis..."
+        filters={[
+          {
+            key: 'jenis',
+            label: 'Jenis Peristiwa',
+            value: jenisFilter,
+            options: JENIS_FILTER_OPTIONS,
+            onChange: setJenisFilter
+          },
+          {
+            key: 'status',
+            label: 'Status',
+            value: statusFilter,
+            options: STATUS_FILTER_OPTIONS,
+            onChange: setStatusFilter
+          }
+        ]}
+        sortOptions={SORT_OPTIONS}
+        sortValue={sortBy}
+        onSortChange={setSortBy}
+        sortDir={sortDir}
+        onSortDirChange={setSortDir}
+      />
+
       <Table
         columns={columns}
-        data={docs}
+        data={visibleDocs}
         keyExtractor={(r) => r.id}
         emptyMessage="Belum ada transaksi."
       />

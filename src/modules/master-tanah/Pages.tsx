@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardSummary } from './DashboardSummary';
 import { TanahTable } from './TanahTable';
@@ -8,6 +9,8 @@ import { useFirestoreDoc } from '@/hooks/useFirestoreDoc';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Button } from '@/components/Button';
 import { Tanah } from './tanah.types';
+import { getTanahBySlug } from './tanah.service';
+import { isGoogleDriveLink } from '@/components/LampiranField';
 
 /** Menu 1: Master Tanah — dashboard ringkas + tabel data terkini + tombol Export (§3, §10.1) */
 export function MasterTanahListPage() {
@@ -38,11 +41,57 @@ export function MasterTanahTambahPage() {
 
 export function MasterTanahDetailPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { data: tanah, loading } = useFirestoreDoc<Tanah>('tanah', id);
 
   if (loading) return <LoadingSpinner />;
   if (!tanah) return <p className="text-sm text-gray-500">Bidang tanah tidak ditemukan.</p>;
+
+  return <TanahDetailContent tanah={tanah} />;
+}
+
+/**
+ * Halaman "Lihat Detail Sertifikat" lewat SLUG (dibuat dari Nomor Sertifikat) —
+ * link lebih mudah dibaca & dibagikan dibanding lewat id dokumen Firestore, mis:
+ *   /master-tanah/sertifikat/123-ds-sukamaju-2024
+ */
+export function MasterTanahDetailSlugPage() {
+  const { slug } = useParams();
+  const [tanah, setTanah] = useState<(Tanah & { id: string }) | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!slug) {
+      setLoading(false);
+      return;
+    }
+    let active = true;
+    setLoading(true);
+    getTanahBySlug(slug)
+      .then((result) => {
+        if (active) setTanah(result);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [slug]);
+
+  if (loading) return <LoadingSpinner />;
+  if (!tanah)
+    return (
+      <p className="text-sm text-gray-500">
+        Sertifikat dengan slug ini tidak ditemukan. Pastikan link masih sesuai dengan Nomor
+        Sertifikat terbaru.
+      </p>
+    );
+
+  return <TanahDetailContent tanah={tanah} />;
+}
+
+function TanahDetailContent({ tanah }: { tanah: Tanah & { id: string } }) {
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
@@ -50,7 +99,19 @@ export function MasterTanahDetailPage() {
         <div>
           <h1 className="text-lg font-bold">{tanah.nomorSertifikat}</h1>
           <p className="text-sm text-gray-500">{tanah.lokasi}</p>
+          {tanah.slug && (
+            <p className="text-xs text-gray-400 mt-1 break-all">
+              Link Sertifikat:{' '}
+              <a
+                href={`/master-tanah/sertifikat/${tanah.slug}`}
+                className="text-primary-700 hover:underline"
+              >
+                /master-tanah/sertifikat/{tanah.slug}
+              </a>
+            </p>
+          )}
           <div className="flex gap-2 mt-2 flex-wrap">
+
             {tanah.status === 'draft' && (
               <span className="inline-block text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">
                 Pending (Draft)
@@ -151,6 +212,24 @@ export function MasterTanahDetailPage() {
           </div>
         )}
       </div>
+
+      {tanah.lampiranUrls && tanah.lampiranUrls.length > 0 && (
+        <div className="bg-white border rounded-xl p-4 space-y-2 text-sm">
+          <p className="font-semibold text-gray-700">Lampiran</p>
+          {tanah.lampiranUrls.map((url, i) => (
+            <a
+              key={i}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-primary-700 hover:underline text-xs truncate"
+            >
+              {isGoogleDriveLink(url) ? '📁 Google Drive — ' : '📎 '}
+              {url}
+            </a>
+          ))}
+        </div>
+      )}
 
       <TanahSilsilah tanah={tanah} />
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FormActionBar } from '@/components/FormActionBar';
 import { PemilikFields } from '@/components/PemilikFields';
+import { LampiranField } from '@/components/LampiranField';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 import { searchTanah, getTanah } from '@/modules/master-tanah/tanah.service';
@@ -9,6 +10,7 @@ import { Tanah } from '@/modules/master-tanah/tanah.types';
 import { createRiwayat } from './riwayat.service';
 import { JenisPeristiwa } from './riwayat.types';
 import { PEMILIK_KOSONG } from '@/types/pemilik.types';
+import { gabungkanLampiran } from '@/utils/lampiran';
 
 const JENIS_OPTIONS: { value: JenisPeristiwa; label: string }[] = [
   { value: 'jual-beli', label: 'Jual-Beli' },
@@ -41,6 +43,7 @@ export function RiwayatForm() {
   const [pembeli, setPembeli] = useState('');
   const [keterangan, setKeterangan] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  const [driveLinks, setDriveLinks] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -112,10 +115,11 @@ export function RiwayatForm() {
     setSaving(true);
     setError(null);
     try {
-      let dokumenUrls: string[] = [];
+      let uploadedUrls: string[] = [];
       if (files.length > 0) {
-        dokumenUrls = await uploadFiles(files);
+        uploadedUrls = await uploadFiles(files);
       }
+      const dokumenUrls = gabungkanLampiran(undefined, driveLinks, uploadedUrls);
 
       const riwayatId = await createRiwayat({
         tanahId: selectedTanah.id,
@@ -260,21 +264,14 @@ export function RiwayatForm() {
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Dokumen/Foto Pendukung
-        </label>
-        {/* capture="environment" agar bisa langsung akses kamera HP, sesuai §13 Mobile UX */}
-        <input
-          type="file"
-          accept="image/*,application/pdf"
-          capture="environment"
-          multiple
-          onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
-          className="w-full border rounded-lg p-3"
-        />
-        {uploading && <p className="text-xs text-gray-500 mt-1">{progressLabel}</p>}
-      </div>
+      <LampiranField
+        driveLinks={driveLinks}
+        onDriveLinksChange={setDriveLinks}
+        files={files}
+        onFilesChange={setFiles}
+        uploading={uploading}
+        progressLabel={progressLabel}
+      />
 
       <FormActionBar
         saving={saving || uploading}

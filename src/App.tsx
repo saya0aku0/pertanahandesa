@@ -7,7 +7,8 @@ import { ProfilPage } from '@/modules/profil/Pages';
 import {
   MasterTanahListPage,
   MasterTanahTambahPage,
-  MasterTanahDetailPage
+  MasterTanahDetailPage,
+  MasterTanahDetailSlugPage
 } from '@/modules/master-tanah/Pages';
 import {
   TransaksiListPage,
@@ -37,6 +38,8 @@ export default function App() {
           {/* Menu 1: Master Tanah */}
           <Route path="/master-tanah" element={<MasterTanahListPage />} />
           <Route path="/master-tanah/tambah" element={<MasterTanahTambahPage />} />
+          {/* Slug link untuk halaman "Lihat Detail Sertifikat" berdasarkan Nomor Sertifikat */}
+          <Route path="/master-tanah/sertifikat/:slug" element={<MasterTanahDetailSlugPage />} />
           <Route path="/master-tanah/:id" element={<MasterTanahDetailPage />} />
 
           {/* Menu 2: Transaksi */}

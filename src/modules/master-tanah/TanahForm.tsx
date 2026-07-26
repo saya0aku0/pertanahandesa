@@ -3,14 +3,17 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FormActionBar } from '@/components/FormActionBar';
 import { PemilikFields } from '@/components/PemilikFields';
+import { LampiranField } from '@/components/LampiranField';
 import { PinDialog } from '@/components/PinDialog';
 import { usePinGuard } from '@/hooks/usePinGuard';
+import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 import { createTanah, updateTanah, deleteTanah } from './tanah.service';
 import { jalankanGuardEditHapusTanah, GuardResult } from '@/modules/transaksi/relasiGuard';
 import { finalisasiPenyatuanLahan } from '@/modules/transaksi/riwayat.service';
 import { Tanah, TanahFormInput } from './tanah.types';
 import { PEMILIK_KOSONG } from '@/types/pemilik.types';
 import { isShortGoogleMapsLink, parseGoogleMapsLink } from './googleMapsLink';
+import { gabungkanLampiran } from '@/utils/lampiran';
 
 interface TanahFormProps {
   existing?: Tanah;
@@ -54,6 +57,10 @@ export function TanahForm({ existing, onSaved }: TanahFormProps) {
     sourceRiwayatIds:
       existing?.sourceRiwayatIds ?? (prefillSourceRiwayatIds.length > 0 ? prefillSourceRiwayatIds : undefined)
   });
+  const [driveLinks, setDriveLinks] = useState<string[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
+  const { uploadFiles, uploading, progressLabel } = useCloudinaryUpload();
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [guardWarnings, setGuardWarnings] = useState<GuardResult[]>([]);
@@ -117,7 +124,12 @@ export function TanahForm({ existing, onSaved }: TanahFormProps) {
     setSaving(true);
     setError(null);
     try {
-      const dataToSave: TanahFormInput = { ...form, status: statusSimpan };
+      let uploadedUrls: string[] = [];
+      if (files.length > 0) {
+        uploadedUrls = await uploadFiles(files);
+      }
+      const lampiranUrls = gabungkanLampiran(existing?.lampiranUrls, driveLinks, uploadedUrls);
+      const dataToSave: TanahFormInput = { ...form, lampiranUrls, status: statusSimpan };
       if (existing) {
         await updateTanah(existing.id, dataToSave);
         onSaved?.(existing.id);
@@ -447,8 +459,18 @@ export function TanahForm({ existing, onSaved }: TanahFormProps) {
           onChange={(v) => update('pemilikSaatIni', v)}
         />
 
+        <LampiranField
+          driveLinks={driveLinks}
+          onDriveLinksChange={setDriveLinks}
+          files={files}
+          onFilesChange={setFiles}
+          existingUrls={existing?.lampiranUrls}
+          uploading={uploading}
+          progressLabel={progressLabel}
+        />
+
         <FormActionBar
-          saving={saving}
+          saving={saving || uploading}
           onSimpan={handleSimpan}
           onPending={handlePending}
           onBatal={handleBatal}

@@ -17,6 +17,14 @@ export interface Tanah {
   // Data diri pemilik saat ini — lengkap: nama, NIK, alamat lengkap.
   pemilikSaatIni: Pemilik;
 
+  // Lampiran pendukung: bisa link Google Drive dan/atau URL hasil upload Cloudinary.
+  lampiranUrls?: string[];
+
+  // Slug dari Nomor Sertifikat — dipakai untuk link halaman "Lihat Detail Sertifikat"
+  // (mis. /master-tanah/sertifikat/<slug>) supaya lebih mudah dibaca & dibagikan.
+  slug?: string;
+
+
   // Status penyimpanan: 'aktif' = data final tersimpan, 'draft' = ditekan tombol
   // Pending karena proses ukur/terbit sertifikat baru masih berjalan di pemerintah.
   status: 'aktif' | 'draft';
@@ -56,6 +64,8 @@ export interface TanahFormInput {
   lat?: number;
   long?: number;
   pemilikSaatIni: Pemilik;
+  lampiranUrls?: string[];
+  slug?: string;
   status: 'aktif' | 'draft';
   parentTanahId?: string | null;
   sourceRiwayatId?: string | null;

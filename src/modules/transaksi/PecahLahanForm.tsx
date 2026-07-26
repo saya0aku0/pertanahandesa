@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { FormActionBar } from '@/components/FormActionBar';
 import { PemilikFields } from '@/components/PemilikFields';
+import { LampiranField } from '@/components/LampiranField';
 import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 import { PEMILIK_KOSONG } from '@/types/pemilik.types';
 import { Tanah } from '@/modules/master-tanah/tanah.types';
 import { simpanPecahLahan } from './riwayat.service';
 import { PecahLahanBagian, Riwayat } from './riwayat.types';
+import { gabungkanLampiran } from '@/utils/lampiran';
 
 interface PecahLahanFormProps {
   tanah: Tanah;
@@ -29,6 +31,7 @@ export function PecahLahanForm({ tanah, alasan, draftRiwayat, onBatal, onSelesai
   const [tanggalKejadian, setTanggalKejadian] = useState(draftRiwayat?.tanggalKejadian ?? '');
   const [keterangan, setKeterangan] = useState(draftRiwayat?.keterangan ?? '');
   const [files, setFiles] = useState<File[]>([]);
+  const [driveLinks, setDriveLinks] = useState<string[]>([]);
   const [jumlahBagian, setJumlahBagian] = useState(draftRiwayat?.pecahBagian?.length || 2);
   const [bagian, setBagian] = useState<PecahLahanBagian[]>(
     draftRiwayat?.pecahBagian && draftRiwayat.pecahBagian.length > 0
@@ -88,6 +91,7 @@ export function PecahLahanForm({ tanah, alasan, draftRiwayat, onBatal, onSelesai
       if (files.length > 0) {
         dokumenUrls = [...dokumenUrls, ...(await uploadFiles(files))];
       }
+      dokumenUrls = gabungkanLampiran(dokumenUrls, driveLinks, []);
       await simpanPecahLahan({
         tanahId: tanah.id,
         jenisPeristiwa: alasan,
@@ -193,23 +197,15 @@ export function PecahLahanForm({ tanah, alasan, draftRiwayat, onBatal, onSelesai
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Dokumen/Foto Pendukung</label>
-        <input
-          type="file"
-          accept="image/*,application/pdf"
-          capture="environment"
-          multiple
-          onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
-          className="w-full border rounded-lg p-3"
-        />
-        {uploading && <p className="text-xs text-gray-500 mt-1">{progressLabel}</p>}
-        {draftRiwayat?.dokumenUrls && draftRiwayat.dokumenUrls.length > 0 && (
-          <p className="text-xs text-gray-400 mt-1">
-            {draftRiwayat.dokumenUrls.length} dokumen dari draft sebelumnya akan tetap disimpan.
-          </p>
-        )}
-      </div>
+      <LampiranField
+        driveLinks={driveLinks}
+        onDriveLinksChange={setDriveLinks}
+        files={files}
+        onFilesChange={setFiles}
+        existingUrls={draftRiwayat?.dokumenUrls}
+        uploading={uploading}
+        progressLabel={progressLabel}
+      />
 
       <FormActionBar
         saving={saving || uploading}

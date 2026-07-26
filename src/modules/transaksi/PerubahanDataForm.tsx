@@ -4,6 +4,7 @@ import { Button } from '@/components/Button';
 import { FormActionBar } from '@/components/FormActionBar';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PemilikFields } from '@/components/PemilikFields';
+import { LampiranField } from '@/components/LampiranField';
 import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 import { PEMILIK_KOSONG } from '@/types/pemilik.types';
 import { getTanah } from '@/modules/master-tanah/tanah.service';
@@ -11,6 +12,7 @@ import { Tanah } from '@/modules/master-tanah/tanah.types';
 import { createRiwayat, getRiwayat } from './riwayat.service';
 import { Riwayat } from './riwayat.types';
 import { PecahLahanForm } from './PecahLahanForm';
+import { gabungkanLampiran } from '@/utils/lampiran';
 
 type Alasan = 'jual-beli' | 'waris' | 'pembaruan-data';
 type Step = 'alasan' | 'luas-tetap' | 'pemilik-baru' | 'pecah-lahan';
@@ -208,6 +210,7 @@ function PemilikBaruStep({
   const [pemilikBaru, setPemilikBaru] = useState({ ...PEMILIK_KOSONG });
   const [keterangan, setKeterangan] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  const [driveLinks, setDriveLinks] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const { uploadFiles, uploading, progressLabel } = useCloudinaryUpload();
@@ -229,8 +232,9 @@ function PemilikBaruStep({
     setSaving(true);
     setError(null);
     try {
-      let dokumenUrls: string[] = [];
-      if (files.length > 0) dokumenUrls = await uploadFiles(files);
+      let uploadedUrls: string[] = [];
+      if (files.length > 0) uploadedUrls = await uploadFiles(files);
+      const dokumenUrls = gabungkanLampiran(undefined, driveLinks, uploadedUrls);
       await createRiwayat({
         tanahId: tanah.id,
         jenisPeristiwa: alasan,
@@ -280,18 +284,14 @@ function PemilikBaruStep({
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Dokumen/Foto Pendukung</label>
-        <input
-          type="file"
-          accept="image/*,application/pdf"
-          capture="environment"
-          multiple
-          onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
-          className="w-full border rounded-lg p-3"
-        />
-        {uploading && <p className="text-xs text-gray-500 mt-1">{progressLabel}</p>}
-      </div>
+      <LampiranField
+        driveLinks={driveLinks}
+        onDriveLinksChange={setDriveLinks}
+        files={files}
+        onFilesChange={setFiles}
+        uploading={uploading}
+        progressLabel={progressLabel}
+      />
 
       <div className="flex justify-start">
         <button type="button" onClick={onKembali} className="text-sm text-gray-500 hover:underline">

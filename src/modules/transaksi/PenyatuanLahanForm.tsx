@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/Button';
 import { PemilikFields } from '@/components/PemilikFields';
+import { LampiranField } from '@/components/LampiranField';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 import { searchTanah } from '@/modules/master-tanah/tanah.service';
@@ -9,6 +10,7 @@ import { Tanah } from '@/modules/master-tanah/tanah.types';
 import { buatRiwayatPenyatuanLahan } from './riwayat.service';
 import { PEMILIK_KOSONG } from '@/types/pemilik.types';
 import { useEffect } from 'react';
+import { gabungkanLampiran } from '@/utils/lampiran';
 
 /**
  * Form Transaksi khusus "Penyatuan Lahan" — kebalikan dari Pecah Lahan:
@@ -29,6 +31,7 @@ export function PenyatuanLahanForm() {
   const [pemilikBaru, setPemilikBaru] = useState({ ...PEMILIK_KOSONG });
   const [keterangan, setKeterangan] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  const [driveLinks, setDriveLinks] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -77,10 +80,11 @@ export function PenyatuanLahanForm() {
     setSaving(true);
     setError(null);
     try {
-      let dokumenUrls: string[] = [];
+      let uploadedUrls: string[] = [];
       if (files.length > 0) {
-        dokumenUrls = await uploadFiles(files);
+        uploadedUrls = await uploadFiles(files);
       }
+      const dokumenUrls = gabungkanLampiran(undefined, driveLinks, uploadedUrls);
 
       const riwayatIds = await buatRiwayatPenyatuanLahan({
         sourceTanahIds: dipilih.map((t) => t.id),
@@ -195,20 +199,14 @@ export function PenyatuanLahanForm() {
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Dokumen/Foto Pendukung
-        </label>
-        <input
-          type="file"
-          accept="image/*,application/pdf"
-          capture="environment"
-          multiple
-          onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
-          className="w-full border rounded-lg p-3"
-        />
-        {uploading && <p className="text-xs text-gray-500 mt-1">{progressLabel}</p>}
-      </div>
+      <LampiranField
+        driveLinks={driveLinks}
+        onDriveLinksChange={setDriveLinks}
+        files={files}
+        onFilesChange={setFiles}
+        uploading={uploading}
+        progressLabel={progressLabel}
+      />
 
       <div className="flex flex-col-reverse md:flex-row gap-2 md:justify-end">
         <Button type="button" variant="secondary" onClick={() => navigate('/transaksi')} disabled={saving || uploading}>

@@ -1,6 +1,7 @@
 import {
   createDoc,
   deleteDocById,
+  getDocByField,
   getDocById,
   getPaginated,
   updateDocById,
@@ -9,15 +10,29 @@ import {
 import { collection, getDocs, limit, query } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { Tanah, TanahFormInput } from './tanah.types';
+import { buatSlugSertifikat } from './slug';
 
 const COLLECTION = 'tanah';
 
 export async function createTanah(input: TanahFormInput) {
-  return createDoc(COLLECTION, input);
+  const slug = buatSlugSertifikat(input.nomorSertifikat);
+  return createDoc(COLLECTION, { ...input, slug });
 }
 
 export async function updateTanah(id: string, input: Partial<TanahFormInput>) {
-  return updateDocById(COLLECTION, id, input);
+  const patch: Partial<TanahFormInput> = { ...input };
+  if (patch.nomorSertifikat) {
+    patch.slug = buatSlugSertifikat(patch.nomorSertifikat);
+  }
+  return updateDocById(COLLECTION, id, patch);
+}
+
+/**
+ * Ambil detail bidang tanah lewat SLUG (dari Nomor Sertifikat) — dipakai untuk
+ * halaman "Lihat Detail Sertifikat" dengan link yang mudah dibaca (lihat slug.ts).
+ */
+export async function getTanahBySlug(slug: string) {
+  return getDocByField<Tanah>(COLLECTION, 'slug', slug);
 }
 
 export async function deleteTanah(id: string) {
