@@ -45,54 +45,60 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-sm bg-white rounded-xl shadow-sm border p-6 space-y-4">
-        <div className="text-center">
-          <h1 className="text-xl font-bold text-primary-800">Riwayat Surat Tanah &amp; Kepemilikan</h1>
-          <p className="text-base font-bold text-primary-800">DESA PUTUKREJO</p>
-          <p className="text-sm text-gray-500 mt-1">Masuk untuk melanjutkan</p>
+      <div className="w-full max-w-3xl bg-white rounded-xl shadow-sm border overflow-hidden md:flex">
+        {/* Sisi kiri — branding / judul */}
+        <div className="md:w-2/5 bg-primary-700 text-white p-8 flex flex-col justify-center items-center text-center gap-2">
+          <h1 className="text-lg md:text-xl font-bold leading-snug whitespace-nowrap">
+            Pencatatan Surat Tanah &amp; Kepemilikan
+          </h1>
+          <p className="text-base font-bold">DESA PUTUKREJO</p>
+          <p className="text-sm text-primary-100">Masuk untuk melanjutkan</p>
         </div>
 
-        {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+        {/* Sisi kanan — form login */}
+        <div className="md:w-3/5 p-8 space-y-4">
+          {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email / Username
-            </label>
-            <input
-              type="text"
-              required
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              className="w-full border rounded-lg p-3 min-h-[44px]"
-              autoComplete="username"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border rounded-lg p-3 min-h-[44px]"
-            />
-          </div>
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Memproses...' : 'Masuk'}
-          </Button>
-        </form>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email / Username
+              </label>
+              <input
+                type="text"
+                required
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                className="w-full border rounded-lg p-3 min-h-[44px]"
+                autoComplete="username"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full border rounded-lg p-3 min-h-[44px]"
+              />
+            </div>
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? 'Memproses...' : 'Masuk'}
+            </Button>
+          </form>
 
-        <button
-          onClick={() => setShowForgot(true)}
-          className="text-sm text-primary-700 hover:underline w-full text-center min-h-[44px]"
-        >
-          Lupa Password?
-        </button>
+          <button
+            onClick={() => setShowForgot(true)}
+            className="text-sm text-primary-700 hover:underline w-full text-center min-h-[44px]"
+          >
+            Lupa Password?
+          </button>
 
-        <p className="text-xs text-gray-400 text-center pt-2 border-t">
-          {'</> Application By : Hikimori-Project @2026'}
-        </p>
+          <p className="text-xs text-gray-400 text-center pt-2 border-t">
+            {'</> Application By : Hikimori-Project @2026'}
+          </p>
+        </div>
       </div>
 
       <Modal open={showForgot} onClose={() => setShowForgot(false)} title="Lupa Password">
