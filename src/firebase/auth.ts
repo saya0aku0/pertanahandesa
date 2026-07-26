@@ -6,6 +6,7 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   confirmPasswordReset,
+  sendPasswordResetEmail,
   User
 } from 'firebase/auth';
 import { auth } from './config';
@@ -35,7 +36,21 @@ export function watchAuthState(callback: (user: User | null) => void) {
   return onAuthStateChanged(auth, callback);
 }
 
-// Reset password native Firebase — dipakai di tahap akhir alur OTP hybrid (§9.4 / §10.6)
+/**
+ * Kirim email reset password RESMI dari Firebase (100% gratis, jalan di Spark plan,
+ * tidak butuh Cloud Functions/server). Link di email akan mengarah ke halaman
+ * /reset-password di app ini sendiri (lihat actionCodeSettings), bukan halaman
+ * default Firebase — supaya tampilannya konsisten dengan branding aplikasi.
+ */
+export function sendResetEmail(email: string) {
+  return sendPasswordResetEmail(auth, email, {
+    url: `${window.location.origin}/reset-password`,
+    handleCodeInApp: true
+  });
+}
+
+// Reset password native Firebase — dipakai di halaman /reset-password setelah
+// user klik link dari email (oobCode diambil dari query string URL).
 export function resetPasswordWithCode(oobCode: string, newPassword: string) {
   return confirmPasswordReset(auth, oobCode, newPassword);
 }

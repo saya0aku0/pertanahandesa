@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from '@/layouts/MainLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { LoginPage } from '@/modules/auth/Pages';
+import { ResetPasswordPage } from '@/modules/auth/ResetPasswordPage';
 import { ProfilPage } from '@/modules/profil/Pages';
 import {
   MasterTanahListPage,
@@ -17,6 +18,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         <Route
           element={
