@@ -27,6 +27,10 @@ export function KelolaUserPage() {
   const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Sembunyikan akun Superadmin dari daftar — akun ini bersifat teknis/pengelola sistem,
+  // tidak untuk ditampilkan atau dikelola lewat menu Kelola User biasa.
+  const visibleDocs = docs.filter((u) => u.role !== 'superadmin');
+
   const columns: TableColumn<AppUser>[] = [
     { key: 'nama', header: 'Nama', render: (r) => r.nama },
     { key: 'username', header: 'Username', render: (r) => r.username ?? '-' },
@@ -90,7 +94,7 @@ export function KelolaUserPage() {
         </Button>
       </div>
 
-      <Table columns={columns} data={docs} keyExtractor={(r) => r.id} emptyMessage="Belum ada user." />
+      <Table columns={columns} data={visibleDocs} keyExtractor={(r) => r.id} emptyMessage="Belum ada user." />
       {hasMore && (
         <div className="text-center">
           <Button variant="secondary" onClick={loadMore} disabled={loading}>
