@@ -1,9 +1,9 @@
 // Data kontak developer ditampilkan di Pusat Bantuan (§10.5).
-// ⚠️ Ganti nilai di bawah ini dengan data developer/pengelola aplikasi yang sebenarnya.
 export const developerProfile = {
-  nama: '<<PLACEHOLDER_NAMA_DEVELOPER>>',
-  email: '<<PLACEHOLDER_EMAIL_DEVELOPER>>',
-  whatsapp: '<<PLACEHOLDER_NOMOR_WHATSAPP>>',
+  nama: 'Mahfud Febry Styanto',
+  email: 'Mahfudfebrys@gmail.com',
+  whatsapp: '6282234651413',
+  whatsappLink: 'https://wa.me/6282234651413',
   catatan:
     'Hubungi developer untuk laporan bug, permintaan fitur, atau kendala teknis lainnya.'
 };
