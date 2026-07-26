@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Button } from '@/components/Button';
+import { FormActionBar } from '@/components/FormActionBar';
+import { PemilikFields } from '@/components/PemilikFields';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 import { searchTanah, getTanah } from '@/modules/master-tanah/tanah.service';
 import { Tanah } from '@/modules/master-tanah/tanah.types';
 import { createRiwayat } from './riwayat.service';
 import { JenisPeristiwa } from './riwayat.types';
+import { PEMILIK_KOSONG } from '@/types/pemilik.types';
 
 const JENIS_OPTIONS: { value: JenisPeristiwa; label: string }[] = [
   { value: 'jual-beli', label: 'Jual-Beli' },
   { value: 'waris', label: 'Waris' },
+  { value: 'pembaruan-data', label: 'Pembaruan Data Saja' },
   { value: 'pecah-lahan', label: 'Pecah Lahan' },
   { value: 'belum-ada-transaksi', label: 'Belum Ada Transaksi' }
 ];
@@ -18,6 +21,8 @@ const JENIS_OPTIONS: { value: JenisPeristiwa; label: string }[] = [
 /**
  * Form Transaksi — field pertama WAJIB dropdown pencarian (searchable), bukan input teks bebas.
  * Mengikuti alur wajib §10.3: cari di /tanah → jika tidak ada, arahkan buat data tanah baru dulu.
+ * Untuk alur "Perubahan Data" yang lebih lengkap (alasan → luas tetap? → pemilik baru / pecah
+ * lahan), lihat PerubahanDataForm.tsx yang dipicu dari tombol di Master Tanah.
  */
 export function RiwayatForm() {
   const navigate = useNavigate();
@@ -32,7 +37,7 @@ export function RiwayatForm() {
 
   const [jenisPeristiwa, setJenisPeristiwa] = useState<JenisPeristiwa>('jual-beli');
   const [tanggalKejadian, setTanggalKejadian] = useState('');
-  const [namaPemilikBaru, setNamaPemilikBaru] = useState('');
+  const [pemilikBaru, setPemilikBaru] = useState({ ...PEMILIK_KOSONG });
   const [pembeli, setPembeli] = useState('');
   const [keterangan, setKeterangan] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -82,16 +87,27 @@ export function RiwayatForm() {
     );
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function validasi(status: 'draft' | 'final'): boolean {
     if (!selectedTanah) {
       setError('Pilih bidang tanah terlebih dahulu dari dropdown pencarian.');
-      return;
+      return false;
     }
-    if (!tanggalKejadian || !namaPemilikBaru) {
-      setError('Tanggal kejadian dan nama pemilik baru wajib diisi.');
-      return;
+    if (!tanggalKejadian) {
+      setError('Tanggal kejadian wajib diisi.');
+      return false;
     }
+    if (
+      status === 'final' &&
+      (!pemilikBaru.nama || !pemilikBaru.nik || !pemilikBaru.alamatLengkap)
+    ) {
+      setError('Data pemilik baru (Nama, NIK, Alamat Lengkap) wajib diisi lengkap.');
+      return false;
+    }
+    return true;
+  }
+
+  async function doSubmit(status: 'draft' | 'final') {
+    if (!validasi(status) || !selectedTanah) return;
 
     setSaving(true);
     setError(null);
@@ -105,16 +121,19 @@ export function RiwayatForm() {
         tanahId: selectedTanah.id,
         jenisPeristiwa,
         tanggalKejadian,
-        namaPemilikSebelumnya: selectedTanah.pemilikSaatIni,
-        namaPemilikBaru,
+        pemilikSebelumnya: selectedTanah.pemilikSaatIni,
+        pemilikBaru,
         pembeli,
         keterangan,
-        dokumenUrls
+        dokumenUrls,
+        status
       });
 
-      if (jenisPeristiwa === 'pecah-lahan') {
+      if (status === 'final' && jenisPeristiwa === 'pecah-lahan') {
         // Untuk pecah lahan, arahkan sekdes membuat bidang anak lewat Master Tanah,
         // dengan parentTanahId & sourceRiwayatId sudah terhubung otomatis.
+        // (Alur pecah lahan yang lebih lengkap — banyak bagian sekaligus — ada di
+        // tombol "Perubahan Data" pada Master Tanah / PerubahanDataForm.tsx.)
         navigate(
           `/master-tanah/tambah?returnTo=/transaksi&parentTanahId=${selectedTanah.id}&sourceRiwayatId=${riwayatId}`
         );
@@ -129,8 +148,12 @@ export function RiwayatForm() {
     }
   }
 
+  function handleBatal() {
+    navigate('/transaksi');
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
+    <div className="space-y-4 max-w-lg">
       {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
 
       {/* Field pertama: dropdown pencarian searchable (§10.3 step 1-2) */}
@@ -159,7 +182,7 @@ export function RiwayatForm() {
                 className="w-full text-left p-3 min-h-[44px] hover:bg-primary-50 text-sm border-b last:border-0"
               >
                 <span className="font-medium">{t.nomorSertifikat}</span>
-                <span className="text-gray-500"> — {t.pemilikSaatIni}</span>
+                <span className="text-gray-500"> — {t.pemilikSaatIni?.nama}</span>
               </button>
             ))}
           </div>
@@ -171,9 +194,13 @@ export function RiwayatForm() {
               Nomor sertifikat/surat ini belum terdaftar di Master Tanah. Data bidang tanah harus
               dibuat dulu sebelum bisa dicatat transaksinya.
             </p>
-            <Button type="button" variant="secondary" onClick={handleBuatDataBaru}>
+            <button
+              type="button"
+              onClick={handleBuatDataBaru}
+              className="min-h-[44px] px-4 py-2 rounded-lg font-medium bg-gray-100 text-gray-800 hover:bg-gray-200"
+            >
               Buat Data Tanah Baru
-            </Button>
+            </button>
           </div>
         )}
 
@@ -210,15 +237,7 @@ export function RiwayatForm() {
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Nama Pemilik Baru *</label>
-        <input
-          value={namaPemilikBaru}
-          onChange={(e) => setNamaPemilikBaru(e.target.value)}
-          className="w-full border rounded-lg p-3 min-h-[44px]"
-          required
-        />
-      </div>
+      <PemilikFields label="Data Pemilik Baru" value={pemilikBaru} onChange={setPemilikBaru} />
 
       {jenisPeristiwa === 'jual-beli' && (
         <div>
@@ -257,9 +276,13 @@ export function RiwayatForm() {
         {uploading && <p className="text-xs text-gray-500 mt-1">{progressLabel}</p>}
       </div>
 
-      <Button type="submit" disabled={saving || uploading} className="w-full">
-        {saving || uploading ? 'Menyimpan...' : 'Simpan Transaksi'}
-      </Button>
-    </form>
+      <FormActionBar
+        saving={saving || uploading}
+        onSimpan={() => doSubmit('final')}
+        onPending={() => doSubmit('draft')}
+        onBatal={handleBatal}
+        simpanLabel="Simpan Transaksi"
+      />
+    </div>
   );
 }

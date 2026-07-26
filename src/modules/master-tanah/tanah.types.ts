@@ -1,3 +1,5 @@
+import { Pemilik } from '@/types/pemilik.types';
+
 export interface Tanah {
   id: string;
   nomorSertifikat: string;
@@ -12,7 +14,12 @@ export interface Tanah {
   googleMapsLink?: string; // link/koordinat yang dipakai untuk isi lat/long
   lat?: number;
   long?: number;
-  pemilikSaatIni: string;
+  // Data diri pemilik saat ini — lengkap: nama, NIK, alamat lengkap.
+  pemilikSaatIni: Pemilik;
+
+  // Status penyimpanan: 'aktif' = data final tersimpan, 'draft' = ditekan tombol
+  // Pending karena proses ukur/terbit sertifikat baru masih berjalan di pemerintah.
+  status: 'aktif' | 'draft';
 
   // --- Relasi silsilah: PECAH LAHAN (1 induk -> banyak anak) ---
   parentTanahId?: string | null; // merujuk bidang induk jika hasil pecah lahan
@@ -26,6 +33,11 @@ export interface Tanah {
   // hanya ditandai non-aktif supaya penelusuran silsilah pemilik tetap utuh selamanya.
   statusGabung?: 'aktif' | 'sudah-digabung';
   mergedIntoTanahId?: string; // merujuk bidang gabungan hasil akhir, jika statusGabung = 'sudah-digabung'
+
+  // Status arsip untuk PECAH LAHAN: bidang induk yang sudah dipecah menjadi beberapa
+  // bidang anak TIDAK DIHAPUS, hanya ditandai supaya silsilah pemilik tetap tertelusuri.
+  statusPecah?: 'aktif' | 'sudah-dipecah';
+  pecahMenjadiTanahIds?: string[]; // daftar bidang ANAK hasil pemecahan bidang ini
 
   createdAt?: unknown;
 }
@@ -43,11 +55,14 @@ export interface TanahFormInput {
   googleMapsLink?: string;
   lat?: number;
   long?: number;
-  pemilikSaatIni: string;
+  pemilikSaatIni: Pemilik;
+  status: 'aktif' | 'draft';
   parentTanahId?: string | null;
   sourceRiwayatId?: string | null;
   parentTanahIds?: string[];
   sourceRiwayatIds?: string[];
   statusGabung?: 'aktif' | 'sudah-digabung';
   mergedIntoTanahId?: string;
+  statusPecah?: 'aktif' | 'sudah-dipecah';
+  pecahMenjadiTanahIds?: string[];
 }

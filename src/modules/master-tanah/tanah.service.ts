@@ -58,6 +58,20 @@ export async function tandaiBidangSudahDigabung(tanahId: string, mergedIntoTanah
 }
 
 /**
+ * Tandai bidang induk sebagai "sudah dipecah" menjadi beberapa bidang anak —
+ * TIDAK MENGHAPUS data induk, hanya diarsipkan supaya silsilah pemilik tetap
+ * tertelusuri selamanya (simetris dengan tandaiBidangSudahDigabung).
+ */
+export async function tandaiBidangSudahDipecah(tanahId: string, pecahMenjadiTanahIds: string[]) {
+  return updateTanah(tanahId, { statusPecah: 'sudah-dipecah', pecahMenjadiTanahIds });
+}
+
+/** Ubah status simpan bidang tanah: 'aktif' (final) atau 'draft' (Pending). */
+export async function setStatusTanah(tanahId: string, status: 'aktif' | 'draft') {
+  return updateTanah(tanahId, { status });
+}
+
+/**
  * Search bidang tanah untuk dropdown searchable di form Transaksi (§10.3).
  * Query berdasarkan nomorSertifikat (prefix match sederhana, hemat read dg limit).
  * Debounce ±400ms diterapkan di komponen pemanggil (useDebounce).

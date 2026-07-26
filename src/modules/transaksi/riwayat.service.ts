@@ -4,39 +4,32 @@ import {
   createDoc,
   deleteDocById,
   getPaginated,
+  getDocById,
   updateDocById
 } from '@/firebase/firestore';
 import {
   createTanah,
+  getTanah,
   updateTanah,
-  tandaiBidangSudahDigabung
+  tandaiBidangSudahDigabung,
+  tandaiBidangSudahDipecah
 } from '@/modules/master-tanah/tanah.service';
 import { TanahFormInput } from '@/modules/master-tanah/tanah.types';
-import { Riwayat, RiwayatFormInput } from './riwayat.types';
+import { Riwayat, RiwayatFormInput, PecahLahanBagian } from './riwayat.types';
 
 const COLLECTION = 'riwayat';
 
 export async function createRiwayat(input: RiwayatFormInput) {
   const id = await createDoc(COLLECTION, input);
 
-  // Jika jenis peristiwa adalah "pecah-lahan", otomatis buat entri baru di /tanah
-  // dengan parentTanahId merujuk ke bidang induk (§10.3)
-  // (Pemanggil bertanggung jawab memanggil createBidangAnakPecahLahan secara terpisah
-  //  dengan data bidang anak yang lengkap, karena butuh input luas/lokasi baru dari user.)
-
-  // Selalu update pemilikSaatIni di Master Tanah supaya tetap sinkron (single source of truth)
-  await updateTanah(input.tanahId, { pemilikSaatIni: input.namaPemilikBaru });
+  // Riwayat berstatus 'final' langsung menyinkronkan pemilikSaatIni di Master Tanah
+  // (single source of truth). Riwayat 'draft' (Pending) TIDAK mengubah data master
+  // dulu — menunggu difinalisasi setelah proses ukur/terbit sertifikat selesai.
+  if (input.status === 'final') {
+    await updateTanah(input.tanahId, { pemilikSaatIni: input.pemilikBaru });
+  }
 
   return id;
-}
-
-/** Dipakai khusus untuk transaksi jenis "Pecah Lahan" — buat bidang anak baru merujuk induk */
-export async function createBidangAnakPecahLahan(
-  parentTanahId: string,
-  sourceRiwayatId: string,
-  dataAnak: Omit<TanahFormInput, 'parentTanahId' | 'sourceRiwayatId'>
-) {
-  return createTanah({ ...dataAnak, parentTanahId, sourceRiwayatId });
 }
 
 export async function updateRiwayat(id: string, input: Partial<RiwayatFormInput>) {
@@ -45,6 +38,10 @@ export async function updateRiwayat(id: string, input: Partial<RiwayatFormInput>
 
 export async function deleteRiwayat(id: string) {
   return deleteDocById(COLLECTION, id);
+}
+
+export async function getRiwayat(id: string) {
+  return getDocById<Riwayat>(COLLECTION, id);
 }
 
 export async function getRiwayatByTanah(tanahId: string): Promise<Riwayat[]> {
@@ -77,6 +74,94 @@ export async function getRiwayatKeduaTerbaru(tanahId: string, excludeId: string)
 }
 
 // ============================================================
+// PECAH LAHAN (1 bidang -> banyak bagian, tiap bagian punya pemilik baru sendiri)
+// Dipicu dari tombol "Perubahan Data" di Master Tanah ketika luas bidang TIDAK tetap
+// (dijual sebagian atau ahli waris lebih dari satu). Setiap proses harus terhubung
+// dan tersimpan record-nya: 1 riwayat induk -> N bidang tanah anak baru.
+// ============================================================
+
+export interface SimpanPecahLahanParams {
+  tanahId: string;
+  jenisPeristiwa: 'jual-beli' | 'waris' | 'pembaruan-data';
+  tanggalKejadian: string;
+  keterangan?: string;
+  dokumenUrls: string[];
+  pecahBagian: PecahLahanBagian[];
+  status: 'draft' | 'final';
+  /** Isi kalau ini kelanjutan (finalisasi) dari draft yang sudah pernah disimpan Pending */
+  existingRiwayatId?: string;
+}
+
+/**
+ * Simpan/perbarui riwayat Pecah Lahan.
+ * - status 'draft' (Pending): hanya simpan/perbarui rincian bagian di /riwayat,
+ *   BELUM membuat bidang tanah anak (karena nomor surat ukur/sertifikat baru
+ *   biasanya belum terbit — masih antre proses pemerintah).
+ * - status 'final' (Simpan): buat bidang tanah ANAK baru untuk tiap bagian,
+ *   tautkan ke bidang induk (parentTanahId/sourceRiwayatId), lalu arsipkan
+ *   bidang induk sebagai "sudah-dipecah" (data induk tetap ada, tidak dihapus).
+ */
+export async function simpanPecahLahan(params: SimpanPecahLahanParams): Promise<string> {
+  const riwayatData = {
+    tanahId: params.tanahId,
+    jenisPeristiwa: 'pecah-lahan' as const,
+    tanggalKejadian: params.tanggalKejadian,
+    alasanPerubahan: params.jenisPeristiwa,
+    pemilikBaru: params.pecahBagian[0]?.pemilikBaru ?? { nama: '', nik: '', alamatLengkap: '' },
+    keterangan: params.keterangan ?? '',
+    dokumenUrls: params.dokumenUrls,
+    status: params.status,
+    pecahBagian: params.pecahBagian
+  };
+
+  let riwayatId: string;
+  if (params.existingRiwayatId) {
+    await updateRiwayat(params.existingRiwayatId, riwayatData);
+    riwayatId = params.existingRiwayatId;
+  } else {
+    riwayatId = await createDoc(COLLECTION, riwayatData);
+  }
+
+  if (params.status === 'draft') {
+    // Pending — cukup simpan rincian, jangan buat bidang anak dulu.
+    return riwayatId;
+  }
+
+  // Finalisasi: buat bidang anak untuk tiap bagian, dan catat balik id-nya ke riwayat.
+  const tanahBaruIds: string[] = [];
+  const bagianTerisi: PecahLahanBagian[] = [];
+  const parentTanah = await getTanah(params.tanahId);
+  for (const bagian of params.pecahBagian) {
+    const id = await createTanah({
+      nomorSertifikat: bagian.nomorSertifikatBaru,
+      nomorSuratUkur: bagian.nomorSuratUkur,
+      luas: bagian.luas,
+      lokasi: parentTanah?.lokasi ?? '',
+      pemilikSaatIni: bagian.pemilikBaru,
+      status: 'aktif',
+      parentTanahId: params.tanahId,
+      sourceRiwayatId: riwayatId
+    });
+    tanahBaruIds.push(id);
+    bagianTerisi.push({ ...bagian, tanahBaruId: id });
+  }
+
+  await updateRiwayat(riwayatId, { pecahBagian: bagianTerisi });
+  await tandaiBidangSudahDipecah(params.tanahId, tanahBaruIds);
+
+  return riwayatId;
+}
+
+/** Dipakai khusus untuk transaksi jenis "Pecah Lahan" model lama — buat bidang anak tunggal */
+export async function createBidangAnakPecahLahan(
+  parentTanahId: string,
+  sourceRiwayatId: string,
+  dataAnak: Omit<TanahFormInput, 'parentTanahId' | 'sourceRiwayatId'>
+) {
+  return createTanah({ ...dataAnak, parentTanahId, sourceRiwayatId });
+}
+
+// ============================================================
 // PENYATUAN LAHAN (banyak bidang sumber -> 1 bidang gabungan)
 // ============================================================
 
@@ -89,7 +174,7 @@ export async function getRiwayatKeduaTerbaru(tanahId: string, excludeId: string)
 export async function buatRiwayatPenyatuanLahan(params: {
   sourceTanahIds: string[];
   tanggalKejadian: string;
-  namaPemilikBaru: string;
+  pemilikBaru: Riwayat['pemilikBaru'];
   keterangan?: string;
   dokumenUrls: string[];
 }): Promise<string[]> {
@@ -99,9 +184,10 @@ export async function buatRiwayatPenyatuanLahan(params: {
       tanahId,
       jenisPeristiwa: 'penyatuan-lahan',
       tanggalKejadian: params.tanggalKejadian,
-      namaPemilikBaru: params.namaPemilikBaru,
+      pemilikBaru: params.pemilikBaru,
       keterangan: params.keterangan ?? '',
-      dokumenUrls: params.dokumenUrls
+      dokumenUrls: params.dokumenUrls,
+      status: 'final'
     });
     riwayatIds.push(id);
   }

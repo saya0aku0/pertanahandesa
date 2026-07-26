@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Riwayat } from '@/modules/transaksi/riwayat.types';
 import { Tanah } from './tanah.types';
+import { formatPemilikSingkat } from '@/types/pemilik.types';
 
 interface ExportRow {
   tanah: Tanah;
@@ -26,7 +27,7 @@ export function exportLaporanPdf(rows: ExportRow[], rentang: { dari: string; sam
       tanah.nomorSertifikat,
       tanah.lokasi,
       tanah.luas.toLocaleString('id-ID'),
-      tanah.pemilikSaatIni,
+      formatPemilikSingkat(tanah.pemilikSaatIni),
       terbaru?.jenisPeristiwa ?? '-',
       terbaru?.tanggalKejadian ?? '-'
     ];

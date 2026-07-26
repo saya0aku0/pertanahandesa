@@ -43,7 +43,7 @@ export function ForgotPasswordForm() {
   if (sent) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-green-700 bg-green-50 p-3 rounded-lg">
+        <p role="status" className="text-sm text-green-700 bg-green-50 p-3 rounded-lg break-words">
           Link reset password sudah dikirim ke <strong>{email}</strong>. Buka email Anda dan
           klik tautannya untuk membuat password baru. Cek juga folder Spam kalau tidak
           muncul dalam beberapa menit.
@@ -62,15 +62,23 @@ export function ForgotPasswordForm() {
 
   return (
     <div className="space-y-4">
-      {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-red-600 bg-red-50 p-3 rounded-lg break-words">
+          {error}
+        </p>
+      )}
 
-      <label className="block text-sm font-medium text-gray-700">Email terdaftar</label>
+      <label htmlFor="forgot-email" className="block text-sm font-medium text-gray-700">
+        Email terdaftar
+      </label>
       <input
+        id="forgot-email"
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="w-full border rounded-lg p-3 min-h-[44px]"
+        className="w-full border rounded-lg p-3 min-h-[44px] text-base"
         placeholder="nama@email.com"
+        autoComplete="email"
       />
       <Button onClick={handleKirim} disabled={loading} className="w-full">
         {loading ? 'Mengirim...' : 'Kirim Link Reset Password'}

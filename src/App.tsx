@@ -9,7 +9,12 @@ import {
   MasterTanahTambahPage,
   MasterTanahDetailPage
 } from '@/modules/master-tanah/Pages';
-import { TransaksiListPage, TransaksiTambahPage, TransaksiPenyatuanPage } from '@/modules/transaksi/Pages';
+import {
+  TransaksiListPage,
+  TransaksiTambahPage,
+  TransaksiPenyatuanPage,
+  TransaksiPerubahanDataPage
+} from '@/modules/transaksi/Pages';
 import { KelolaUserPage } from '@/modules/kelola-user/Pages';
 import { BantuanPage } from '@/modules/help/Pages';
 
@@ -38,6 +43,7 @@ export default function App() {
           <Route path="/transaksi" element={<TransaksiListPage />} />
           <Route path="/transaksi/tambah" element={<TransaksiTambahPage />} />
           <Route path="/transaksi/penyatuan" element={<TransaksiPenyatuanPage />} />
+          <Route path="/transaksi/perubahan-data" element={<TransaksiPerubahanDataPage />} />
 
           {/* Menu 3: Kelola User */}
           <Route path="/kelola-user" element={<KelolaUserPage />} />

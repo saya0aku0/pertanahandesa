@@ -1,13 +1,19 @@
-import { getDocById, updateDocById } from '@/firebase/firestore';
+import { getDocByField, updateDocById } from '@/firebase/firestore';
 import { AppUser } from '@/modules/auth/auth.types';
 
-export async function getProfil(userId: string) {
-  return getDocById<AppUser>('users', userId);
+/**
+ * PENTING: ID dokumen di koleksi /users adalah auto-generated Firestore ID
+ * (dibuat lewat addDoc di user.service.ts createUser), BUKAN sama dengan
+ * uid Firebase Auth. uid hanya disimpan sebagai FIELD di dalam dokumen.
+ * Jadi profil harus dicari lewat query where('uid', '==', ...), bukan getDocById.
+ */
+export async function getProfil(uid: string) {
+  return getDocByField<AppUser>('users', 'uid', uid);
 }
 
 export async function updateProfil(
-  userId: string,
-  data: { nama?: string; noHp?: string; email?: string }
+  docId: string,
+  data: { nama?: string; noHp?: string }
 ) {
-  return updateDocById('users', userId, data);
+  return updateDocById('users', docId, data);
 }

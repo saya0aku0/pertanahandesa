@@ -38,6 +38,7 @@ export function MasterTanahTambahPage() {
 
 export function MasterTanahDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { data: tanah, loading } = useFirestoreDoc<Tanah>('tanah', id);
 
   if (loading) return <LoadingSpinner />;
@@ -45,14 +46,35 @@ export function MasterTanahDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-bold">{tanah.nomorSertifikat}</h1>
-        <p className="text-sm text-gray-500">{tanah.lokasi}</p>
-        {tanah.statusGabung === 'sudah-digabung' && (
-          <span className="inline-block mt-2 text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">
-            Arsip — Sudah Digabung
-          </span>
-        )}
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-lg font-bold">{tanah.nomorSertifikat}</h1>
+          <p className="text-sm text-gray-500">{tanah.lokasi}</p>
+          <div className="flex gap-2 mt-2 flex-wrap">
+            {tanah.status === 'draft' && (
+              <span className="inline-block text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">
+                Pending (Draft)
+              </span>
+            )}
+            {tanah.statusGabung === 'sudah-digabung' && (
+              <span className="inline-block text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">
+                Arsip — Sudah Digabung
+              </span>
+            )}
+            {tanah.statusPecah === 'sudah-dipecah' && (
+              <span className="inline-block text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">
+                Arsip — Sudah Dipecah
+              </span>
+            )}
+          </div>
+        </div>
+        {tanah.status !== 'draft' &&
+          tanah.statusGabung !== 'sudah-digabung' &&
+          tanah.statusPecah !== 'sudah-dipecah' && (
+            <Button onClick={() => navigate(`/transaksi/perubahan-data?tanahId=${tanah.id}`)}>
+              Perubahan Data
+            </Button>
+          )}
       </div>
 
       <div className="bg-white border rounded-xl p-4 space-y-2 text-sm">
@@ -73,7 +95,17 @@ export function MasterTanahDetailPage() {
         </div>
         <div className="flex justify-between">
           <span className="text-gray-500">Pemilik Saat Ini</span>
-          <span className="font-medium">{tanah.pemilikSaatIni}</span>
+          <span className="font-medium text-right">
+            {tanah.pemilikSaatIni?.nama || '-'}
+            <br />
+            <span className="text-xs text-gray-500 font-normal">
+              NIK {tanah.pemilikSaatIni?.nik || '-'}
+            </span>
+            <br />
+            <span className="text-xs text-gray-500 font-normal">
+              {tanah.pemilikSaatIni?.alamatLengkap || '-'}
+            </span>
+          </span>
         </div>
         {tanah.nomorSuratUkur && (
           <div className="flex justify-between">

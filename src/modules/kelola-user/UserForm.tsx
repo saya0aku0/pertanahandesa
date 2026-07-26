@@ -25,7 +25,8 @@ export function UserForm({ open, onClose, onSaved, existing }: UserFormProps) {
     username: existing?.username ?? '',
     noHp: existing?.noHp ?? '',
     role: existing?.role ?? 'staff',
-    password: ''
+    password: '',
+    pin: ''
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +45,14 @@ export function UserForm({ open, onClose, onSaved, existing }: UserFormProps) {
       setError('Password minimal 6 karakter untuk akun baru.');
       return;
     }
+    if (!existing && !/^\d{4,6}$/.test(form.pin)) {
+      setError('PIN wajib diisi, 4-6 digit angka, untuk akun baru.');
+      return;
+    }
+    if (existing && form.pin && !/^\d{4,6}$/.test(form.pin)) {
+      setError('PIN harus 4-6 digit angka.');
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -54,7 +63,9 @@ export function UserForm({ open, onClose, onSaved, existing }: UserFormProps) {
           email: form.email,
           username: form.username,
           noHp: form.noHp,
-          role: form.role
+          role: form.role,
+          // PIN existing hanya diikutkan kalau diisi ulang (mengganti PIN lama)
+          ...(form.pin ? { pin: form.pin } : {})
         });
       } else {
         await createUser(form);
@@ -144,6 +155,25 @@ export function UserForm({ open, onClose, onSaved, existing }: UserFormProps) {
             />
           </div>
         )}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            PIN Keamanan {!existing && '*'}
+          </label>
+          <input
+            type="password"
+            inputMode="numeric"
+            value={form.pin}
+            onChange={(e) => update('pin', e.target.value.replace(/\D/g, '').slice(0, 6))}
+            className="w-full border rounded-lg p-3 min-h-[44px] tracking-widest"
+            placeholder={existing ? 'Kosongkan jika tidak ganti PIN' : '4-6 digit angka'}
+            maxLength={6}
+            required={!existing}
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            PIN ini akan diminta setiap kali user ini menekan tombol Edit atau Hapus pada
+            data yang sudah tersimpan di Master Tanah/Transaksi.
+          </p>
+        </div>
 
         <Button type="submit" disabled={saving} className="w-full">
           {saving ? 'Menyimpan...' : 'Simpan'}

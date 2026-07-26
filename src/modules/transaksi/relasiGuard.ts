@@ -3,6 +3,7 @@ import { db } from '@/firebase/config';
 import { getAnakBidang, getTanah, updateTanah } from '@/modules/master-tanah/tanah.service';
 import { getRiwayatKeduaTerbaru } from './riwayat.service';
 import { Riwayat } from './riwayat.types';
+import { formatPemilikSingkat } from '@/types/pemilik.types';
 
 export interface GuardResult {
   perluKonfirmasi: boolean;
@@ -119,7 +120,12 @@ export async function cekHapusRiwayatTerbaru(riwayat: Riwayat): Promise<GuardRes
     return { perluKonfirmasi: false, pesan: '' };
   }
 
-  const namaPemilikSebelumnya = keduaTerbaru?.namaPemilikBaru ?? '(kosong / belum ada riwayat lain)';
+  // Prioritas sumber pemilik pengganti: riwayat kedua-terbaru, lalu pemilikSebelumnya
+  // yang tercatat di riwayat ini sendiri saat dibuat.
+  const pemilikPengganti = keduaTerbaru?.pemilikBaru ?? riwayat.pemilikSebelumnya ?? null;
+  const namaPemilikSebelumnya = pemilikPengganti
+    ? formatPemilikSingkat(pemilikPengganti)
+    : '(kosong / belum ada riwayat lain)';
 
   return {
     perluKonfirmasi: true,
@@ -127,9 +133,9 @@ export async function cekHapusRiwayatTerbaru(riwayat: Riwayat): Promise<GuardRes
       tanah?.nomorSertifikat ?? riwayat.tanahId
     }". Menghapusnya akan membuat "Pemilik Saat Ini" di Master Tanah otomatis kembali ke riwayat sebelumnya (${namaPemilikSebelumnya}). Lanjutkan?`,
     onConfirmed: async () => {
-      await updateTanah(riwayat.tanahId, {
-        pemilikSaatIni: keduaTerbaru?.namaPemilikBaru ?? ''
-      });
+      if (pemilikPengganti) {
+        await updateTanah(riwayat.tanahId, { pemilikSaatIni: pemilikPengganti });
+      }
     }
   };
 }

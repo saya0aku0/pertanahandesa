@@ -14,6 +14,12 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        // Batas default 2 MiB sudah kelampauan seiring fitur bertambah (bundle app makin besar).
+        // Dinaikkan ke 5 MiB supaya build tidak gagal gara-gara precache; idealnya bundle
+        // dipecah pakai code-splitting (manualChunks/dynamic import) untuk performa loading.
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
+      },
       manifest: {
         name: 'Riwayat Tanah Desa',
         short_name: 'TanahDesa',

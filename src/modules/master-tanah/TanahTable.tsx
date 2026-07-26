@@ -5,6 +5,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Button } from '@/components/Button';
 import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
 import { Tanah } from './tanah.types';
+import { formatPemilikSingkat } from '@/types/pemilik.types';
 
 /** Tabel data terkini — 1 baris = 1 bidang tanah, status terbaru saja (§3, §10.1) */
 export function TanahTable() {
@@ -29,7 +30,17 @@ export function TanahTable() {
     { key: 'nomorSuratUkur', header: 'No. Surat Ukur', render: (r) => r.nomorSuratUkur ?? '-' },
     { key: 'lokasi', header: 'Lokasi', render: (r) => r.lokasi },
     { key: 'luas', header: 'Luas (m²)', render: (r) => r.luas.toLocaleString('id-ID') },
-    { key: 'pemilikSaatIni', header: 'Pemilik Saat Ini', render: (r) => r.pemilikSaatIni },
+    { key: 'pemilikSaatIni', header: 'Pemilik Saat Ini', render: (r) => formatPemilikSingkat(r.pemilikSaatIni) },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (r) =>
+        r.status === 'draft' ? (
+          <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">Pending (Draft)</span>
+        ) : (
+          <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded-full">Aktif</span>
+        )
+    },
     {
       key: 'induk',
       header: 'Asal Bidang',

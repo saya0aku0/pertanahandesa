@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getAnakBidang, getBidangSumberGabungan, getTanah } from './tanah.service';
 import { Tanah } from './tanah.types';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { formatPemilikSingkat } from '@/types/pemilik.types';
 
 interface TanahSilsilahProps {
   tanah: Tanah;
@@ -29,7 +30,7 @@ function NodeView({ node, level }: { node: SilsilahNode; level: number }) {
         className="text-left bg-white border rounded-lg px-3 py-2 text-sm hover:bg-primary-50 min-h-[44px] w-full md:w-auto"
       >
         <span className="font-medium">{node.tanah.nomorSertifikat}</span>
-        <span className="text-gray-500"> — {node.tanah.pemilikSaatIni}</span>
+        <span className="text-gray-500"> — {formatPemilikSingkat(node.tanah.pemilikSaatIni)}</span>
         {node.tanah.statusGabung === 'sudah-digabung' && (
           <span className="ml-2 text-xs text-amber-600">(sudah digabung)</span>
         )}
@@ -92,7 +93,7 @@ export function TanahSilsilah({ tanah }: TanahSilsilahProps) {
             className="mt-2 text-left bg-white border rounded-lg px-3 py-2 text-sm hover:bg-amber-100 min-h-[44px] w-full md:w-auto"
           >
             <span className="font-medium">{bidangHasilGabungan!.nomorSertifikat}</span>
-            <span className="text-gray-500"> — {bidangHasilGabungan!.pemilikSaatIni}</span>
+            <span className="text-gray-500"> — {formatPemilikSingkat(bidangHasilGabungan!.pemilikSaatIni)}</span>
           </button>
         </div>
       )}
@@ -110,7 +111,7 @@ export function TanahSilsilah({ tanah }: TanahSilsilahProps) {
                 className="text-left bg-white border rounded-lg px-3 py-2 text-sm hover:bg-primary-50 min-h-[44px] w-full block"
               >
                 <span className="font-medium">{s.nomorSertifikat}</span>
-                <span className="text-gray-500"> — {s.luas.toLocaleString('id-ID')} m² — {s.pemilikSaatIni}</span>
+                <span className="text-gray-500"> — {s.luas.toLocaleString('id-ID')} m² — {formatPemilikSingkat(s.pemilikSaatIni)}</span>
               </button>
             ))}
           </div>

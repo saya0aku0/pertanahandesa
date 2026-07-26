@@ -7,6 +7,9 @@ import {
   createUserWithEmailAndPassword,
   confirmPasswordReset,
   sendPasswordResetEmail,
+  reauthenticateWithCredential,
+  updatePassword,
+  EmailAuthProvider,
   User
 } from 'firebase/auth';
 import { auth } from './config';
@@ -53,4 +56,20 @@ export function sendResetEmail(email: string) {
 // user klik link dari email (oobCode diambil dari query string URL).
 export function resetPasswordWithCode(oobCode: string, newPassword: string) {
   return confirmPasswordReset(auth, oobCode, newPassword);
+}
+
+/**
+ * Ganti password TANPA OTP/email — dipakai di halaman Setting Profil Akun saat
+ * user sudah login. Firebase mewajibkan reauthenticate dengan password LAMA
+ * dulu sebelum boleh updatePassword (kalau sesi login sudah agak lama), jadi
+ * form-nya tetap minta Kata Sandi Lama walau tidak mengirim email/OTP apapun.
+ */
+export async function changePassword(currentPassword: string, newPassword: string) {
+  const user = auth.currentUser;
+  if (!user || !user.email) {
+    throw new Error('Sesi login tidak ditemukan. Silakan login ulang.');
+  }
+  const credential = EmailAuthProvider.credential(user.email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
+  await updatePassword(user, newPassword);
 }

@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Button } from '@/components/Button';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { createTanah, updateTanah } from './tanah.service';
-import { jalankanGuardEditHapusTanah } from '@/modules/transaksi/relasiGuard';
-import { GuardResult } from '@/modules/transaksi/relasiGuard';
+import { FormActionBar } from '@/components/FormActionBar';
+import { PemilikFields } from '@/components/PemilikFields';
+import { PinDialog } from '@/components/PinDialog';
+import { usePinGuard } from '@/hooks/usePinGuard';
+import { createTanah, updateTanah, deleteTanah } from './tanah.service';
+import { jalankanGuardEditHapusTanah, GuardResult } from '@/modules/transaksi/relasiGuard';
 import { finalisasiPenyatuanLahan } from '@/modules/transaksi/riwayat.service';
 import { Tanah, TanahFormInput } from './tanah.types';
+import { PEMILIK_KOSONG } from '@/types/pemilik.types';
 import { isShortGoogleMapsLink, parseGoogleMapsLink } from './googleMapsLink';
 
 interface TanahFormProps {
@@ -17,6 +20,7 @@ interface TanahFormProps {
 export function TanahForm({ existing, onSaved }: TanahFormProps) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { requestPin, pinDialogProps } = usePinGuard();
 
   // Nomor sertifikat bisa di-prefill dari alur "Buat Data Tanah Baru" di form Transaksi (§10.3)
   const prefillNomor = searchParams.get('nomorSertifikat') ?? '';
@@ -42,7 +46,8 @@ export function TanahForm({ existing, onSaved }: TanahFormProps) {
     googleMapsLink: existing?.googleMapsLink ?? '',
     lat: existing?.lat,
     long: existing?.long,
-    pemilikSaatIni: existing?.pemilikSaatIni ?? '',
+    pemilikSaatIni: existing?.pemilikSaatIni ?? { ...PEMILIK_KOSONG },
+    status: existing?.status ?? 'aktif',
     parentTanahId: existing?.parentTanahId ?? prefillParentId ?? null,
     sourceRiwayatId: existing?.sourceRiwayatId ?? prefillSourceRiwayatId ?? null,
     parentTanahIds: existing?.parentTanahIds ?? (prefillParentIds.length > 0 ? prefillParentIds : undefined),
@@ -53,6 +58,10 @@ export function TanahForm({ existing, onSaved }: TanahFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [guardWarnings, setGuardWarnings] = useState<GuardResult[]>([]);
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<'aktif' | 'draft'>('aktif');
+  const [guardIntent, setGuardIntent] = useState<'save' | 'hapus'>('save');
+  const [confirmHapus, setConfirmHapus] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Latitude/Longitude readOnly secara default (harus lewat "Ambil Koordinat"),
   // bisa dibuka manual kalau link Google Maps tidak bisa diproses otomatis.
@@ -104,20 +113,27 @@ export function TanahForm({ existing, onSaved }: TanahFormProps) {
     );
   }
 
-  async function doSave() {
+  async function doSave(statusSimpan: 'aktif' | 'draft') {
     setSaving(true);
     setError(null);
     try {
+      const dataToSave: TanahFormInput = { ...form, status: statusSimpan };
       if (existing) {
-        await updateTanah(existing.id, form);
+        await updateTanah(existing.id, dataToSave);
         onSaved?.(existing.id);
       } else {
-        const id = await createTanah(form);
+        const id = await createTanah(dataToSave);
         onSaved?.(id);
 
         // Kalau ini bidang hasil PENYATUAN LAHAN, finalisasi: tautkan riwayat sumber
         // ke bidang baru ini, lalu arsipkan bidang sumber (tidak dihapus).
-        if (form.parentTanahIds && form.parentTanahIds.length > 0 && form.sourceRiwayatIds) {
+        // Hanya dijalankan kalau statusnya aktif/final (bukan draft).
+        if (
+          statusSimpan === 'aktif' &&
+          form.parentTanahIds &&
+          form.parentTanahIds.length > 0 &&
+          form.sourceRiwayatIds
+        ) {
           await finalisasiPenyatuanLahan(id, form.parentTanahIds, form.sourceRiwayatIds);
         }
 
@@ -136,33 +152,104 @@ export function TanahForm({ existing, onSaved }: TanahFormProps) {
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.nomorSertifikat || !form.lokasi || !form.pemilikSaatIni) {
-      setError('Nomor sertifikat, lokasi, dan pemilik wajib diisi.');
-      return;
+  function validasiWajib(): boolean {
+    if (!form.nomorSertifikat || !form.lokasi) {
+      setError('Nomor sertifikat dan lokasi wajib diisi.');
+      return false;
+    }
+    if (!form.pemilikSaatIni.nama || !form.pemilikSaatIni.nik || !form.pemilikSaatIni.alamatLengkap) {
+      setError('Data pemilik (Nama, NIK, Alamat Lengkap) wajib diisi lengkap.');
+      return false;
     }
     if (form.luas < 0) {
       setError('Luas tidak boleh negatif.');
-      return;
+      return false;
     }
+    return true;
+  }
 
+  async function jalankanGuardLaluSimpan(statusSimpan: 'aktif' | 'draft') {
     // Guard relasi §11.2 hanya relevan saat EDIT bidang yang sudah punya bidang anak
     if (existing) {
       const warnings = await jalankanGuardEditHapusTanah(existing.id);
       if (warnings.length > 0) {
         setGuardWarnings(warnings);
+        setPendingStatus(statusSimpan);
+        setGuardIntent('save');
         setPendingSubmit(true);
         return;
       }
     }
-    await doSave();
+    await doSave(statusSimpan);
+  }
+
+  // Simpan (final) — validasi wajib penuh, lalu (kalau edit data tersimpan) minta PIN dulu.
+  async function handleSimpan() {
+    setError(null);
+    if (!validasiWajib()) return;
+    if (existing) {
+      requestPin(() => jalankanGuardLaluSimpan('aktif'));
+    } else {
+      await jalankanGuardLaluSimpan('aktif');
+    }
+  }
+
+  // Pending (Drafted) — dipakai kalau proses ukur/terbit sertifikat baru masih berjalan,
+  // jadi TIDAK memvalidasi field wajib secara ketat, cukup nomor sertifikat/lokasi sebagai
+  // penanda minimal supaya draft mudah dicari lagi nanti.
+  async function handlePending() {
+    setError(null);
+    if (!form.nomorSertifikat) {
+      setError('Nomor sertifikat wajib diisi walau statusnya masih Pending.');
+      return;
+    }
+    if (existing) {
+      requestPin(() => doSave('draft'));
+    } else {
+      await doSave('draft');
+    }
+  }
+
+  function handleBatal() {
+    navigate(existing ? `/master-tanah/${existing.id}` : '/master-tanah');
+  }
+
+  async function eksekusiHapus() {
+    if (!existing) return;
+    setDeleting(true);
+    try {
+      await deleteTanah(existing.id);
+      navigate('/master-tanah');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Gagal menghapus data.');
+    } finally {
+      setDeleting(false);
+      setConfirmHapus(false);
+    }
+  }
+
+  async function handleHapus() {
+    if (!existing) return;
+    const warnings = await jalankanGuardEditHapusTanah(existing.id);
+    if (warnings.length > 0) {
+      setGuardWarnings(warnings);
+      setGuardIntent('hapus');
+      setPendingSubmit(true);
+      return;
+    }
+    requestPin(() => setConfirmHapus(true));
   }
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
+      <form className="space-y-4 max-w-lg" onSubmit={(e) => e.preventDefault()}>
         {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+        {existing?.status === 'draft' && (
+          <p className="text-sm bg-amber-50 text-amber-800 p-3 rounded-lg">
+            ⏳ Data ini berstatus <strong>Pending (Draft)</strong> — menunggu proses ukur/terbit
+            sertifikat selesai. Tekan "Simpan" setelah data lengkap untuk menjadikannya aktif.
+          </p>
+        )}
         {form.parentTanahId && (
           <p className="text-sm bg-primary-50 text-primary-800 p-3 rounded-lg">
             Bidang ini akan otomatis tertaut sebagai hasil pemecahan dari bidang induk.
@@ -353,20 +440,21 @@ export function TanahForm({ existing, onSaved }: TanahFormProps) {
           {manualLatLong ? 'Kunci lagi (isi lewat link)' : 'Isi Latitude/Longitude manual'}
         </button>
 
-        {/* Pemilik */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Pemilik Saat Ini *</label>
-          <input
-            value={form.pemilikSaatIni}
-            onChange={(e) => update('pemilikSaatIni', e.target.value)}
-            className="w-full border rounded-lg p-3 min-h-[44px]"
-            required
-          />
-        </div>
+        {/* Pemilik — data diri lengkap: Nama, NIK, Alamat Lengkap */}
+        <PemilikFields
+          label="Pemilik Saat Ini"
+          value={form.pemilikSaatIni}
+          onChange={(v) => update('pemilikSaatIni', v)}
+        />
 
-        <Button type="submit" disabled={saving} className="w-full">
-          {saving ? 'Menyimpan...' : 'Simpan'}
-        </Button>
+        <FormActionBar
+          saving={saving}
+          onSimpan={handleSimpan}
+          onPending={handlePending}
+          onBatal={handleBatal}
+          onHapus={existing ? handleHapus : undefined}
+          showHapus={!!existing}
+        />
       </form>
 
       {guardWarnings.map((w, idx) => (
@@ -382,10 +470,26 @@ export function TanahForm({ existing, onSaved }: TanahFormProps) {
             if (w.onConfirmed) await w.onConfirmed();
             setPendingSubmit(false);
             setGuardWarnings([]);
-            await doSave();
+            if (guardIntent === 'hapus') {
+              requestPin(() => setConfirmHapus(true));
+            } else {
+              await doSave(pendingStatus);
+            }
           }}
         />
       ))}
+
+      <ConfirmDialog
+        open={confirmHapus}
+        title="Hapus Bidang Tanah"
+        message={`Yakin ingin menghapus bidang "${existing?.nomorSertifikat}"? Aksi ini tidak dapat dibatalkan.`}
+        confirmLabel="Ya, hapus"
+        loading={deleting}
+        onCancel={() => setConfirmHapus(false)}
+        onConfirm={eksekusiHapus}
+      />
+
+      <PinDialog {...pinDialogProps} />
     </>
   );
 }

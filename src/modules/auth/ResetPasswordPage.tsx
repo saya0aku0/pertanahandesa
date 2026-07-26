@@ -48,53 +48,61 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-sm bg-white rounded-xl shadow-sm border p-6 space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 sm:p-6">
+      <div className="w-full max-w-sm sm:max-w-md bg-white rounded-xl shadow-sm border p-5 sm:p-6 space-y-4">
         <div className="text-center">
-          <h1 className="text-xl font-bold text-primary-800">Buat Password Baru</h1>
-          <p className="text-sm text-gray-500 mt-1">DESA PUTUKREJO</p>
+          <h1 className="text-lg sm:text-xl font-bold text-primary-800 break-words">Buat Password Baru</h1>
+          <p className="text-sm text-gray-500 mt-1 break-words">DESA PUTUKREJO</p>
         </div>
 
         {!oobCode && (
-          <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+          <p role="alert" className="text-sm text-red-600 bg-red-50 p-3 rounded-lg break-words">
             Tautan tidak valid. Silakan minta link reset password baru dari halaman login.
           </p>
         )}
 
         {success ? (
-          <p className="text-sm text-green-700 bg-green-50 p-3 rounded-lg">
+          <p className="text-sm text-green-700 bg-green-50 p-3 rounded-lg break-words">
             Password berhasil diubah. Mengalihkan ke halaman login...
           </p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3">
-            {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+            {error && (
+              <p role="alert" className="text-sm text-red-600 bg-red-50 p-3 rounded-lg break-words">
+                {error}
+              </p>
+            )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="reset-password" className="block text-sm font-medium text-gray-700 mb-1">
                 Password Baru
               </label>
               <input
+                id="reset-password"
                 type="password"
                 required
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border rounded-lg p-3 min-h-[44px]"
+                className="w-full border rounded-lg p-3 min-h-[44px] text-base"
                 disabled={!oobCode}
+                autoComplete="new-password"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="reset-password-confirm" className="block text-sm font-medium text-gray-700 mb-1">
                 Konfirmasi Password Baru
               </label>
               <input
+                id="reset-password-confirm"
                 type="password"
                 required
                 minLength={6}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full border rounded-lg p-3 min-h-[44px]"
+                className="w-full border rounded-lg p-3 min-h-[44px] text-base"
                 disabled={!oobCode}
+                autoComplete="new-password"
               />
             </div>
             <Button type="submit" disabled={loading || !oobCode} className="w-full">

@@ -4,11 +4,14 @@ import { Table, TableColumn } from '@/components/Table';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Button } from '@/components/Button';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { PinDialog } from '@/components/PinDialog';
+import { usePinGuard } from '@/hooks/usePinGuard';
 import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
 import { deleteRiwayat } from './riwayat.service';
 import { jalankanGuardHapusRiwayat, GuardResult } from './relasiGuard';
 import { RiwayatForm } from './RiwayatForm';
 import { PenyatuanLahanForm } from './PenyatuanLahanForm';
+import { PerubahanDataForm } from './PerubahanDataForm';
 import { Riwayat } from './riwayat.types';
 
 const JENIS_LABEL: Record<string, string> = {
@@ -16,6 +19,7 @@ const JENIS_LABEL: Record<string, string> = {
   waris: 'Waris',
   'pecah-lahan': 'Pecah Lahan',
   'penyatuan-lahan': 'Penyatuan Lahan',
+  'pembaruan-data': 'Pembaruan Data Saja',
   'belum-ada-transaksi': 'Belum Ada Transaksi'
 };
 
@@ -33,6 +37,7 @@ export function TransaksiListPage() {
   const [warningIndex, setWarningIndex] = useState(0);
   const [confirmSimple, setConfirmSimple] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const { requestPin, pinDialogProps } = usePinGuard();
 
   const columns: TableColumn<Riwayat>[] = [
     { key: 'tanggal', header: 'Tanggal', render: (r) => r.tanggalKejadian },
@@ -41,33 +46,62 @@ export function TransaksiListPage() {
       header: 'Jenis Peristiwa',
       render: (r) => JENIS_LABEL[r.jenisPeristiwa] ?? r.jenisPeristiwa
     },
-    { key: 'pemilikBaru', header: 'Pemilik Baru', render: (r) => r.namaPemilikBaru },
+    { key: 'pemilikBaru', header: 'Pemilik Baru', render: (r) => r.pemilikBaru?.nama ?? '-' },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (r) =>
+        r.status === 'draft' ? (
+          <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">
+            Pending (Draft)
+          </span>
+        ) : (
+          <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded-full">
+            Final
+          </span>
+        )
+    },
     {
       key: 'aksi',
       header: 'Aksi',
       render: (r) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleMintaHapus(r);
-          }}
-          className="text-red-600 text-sm hover:underline min-h-[44px]"
-        >
-          Hapus
-        </button>
+        <div className="flex gap-3 justify-end md:justify-start">
+          {r.status === 'draft' && r.jenisPeristiwa === 'pecah-lahan' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/transaksi/perubahan-data?tanahId=${r.tanahId}&draftId=${r.id}`);
+              }}
+              className="text-primary-700 text-sm hover:underline min-h-[44px]"
+            >
+              Lanjutkan
+            </button>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleMintaHapus(r);
+            }}
+            className="text-red-600 text-sm hover:underline min-h-[44px]"
+          >
+            Hapus
+          </button>
+        </div>
       )
     }
   ];
 
   async function handleMintaHapus(riwayat: Riwayat) {
-    setTarget(riwayat);
-    const hasil = await jalankanGuardHapusRiwayat(riwayat);
-    if (hasil.length > 0) {
-      setWarnings(hasil);
-      setWarningIndex(0);
-    } else {
-      setConfirmSimple(true);
-    }
+    requestPin(async () => {
+      setTarget(riwayat);
+      const hasil = await jalankanGuardHapusRiwayat(riwayat);
+      if (hasil.length > 0) {
+        setWarnings(hasil);
+        setWarningIndex(0);
+      } else {
+        setConfirmSimple(true);
+      }
+    });
   }
 
   async function eksekusiHapus(riwayat: Riwayat) {
@@ -157,6 +191,8 @@ export function TransaksiListPage() {
           onConfirm={() => eksekusiHapus(target)}
         />
       )}
+
+      <PinDialog {...pinDialogProps} />
     </div>
   );
 }
@@ -175,6 +211,20 @@ export function TransaksiPenyatuanPage() {
     <div className="space-y-4">
       <h1 className="text-lg font-bold">Penyatuan Lahan</h1>
       <PenyatuanLahanForm />
+    </div>
+  );
+}
+
+/**
+ * Alur "Perubahan Data" — dipicu dari tombol di halaman detail Master Tanah.
+ * Pilih alasan (jual-beli/waris/pembaruan data saja) → Apakah Luas Bidang Tetap?
+ * → isi data pemilik baru, ATAU kalau tidak tetap → Form Pecah Lahan.
+ */
+export function TransaksiPerubahanDataPage() {
+  return (
+    <div className="space-y-4">
+      <h1 className="text-lg font-bold">Perubahan Data Tanah</h1>
+      <PerubahanDataForm />
     </div>
   );
 }

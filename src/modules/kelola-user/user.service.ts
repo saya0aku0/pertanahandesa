@@ -11,6 +11,7 @@ export interface UserFormInput {
   noHp?: string;
   role: UserRole;
   password?: string; // hanya dipakai saat membuat akun baru
+  pin: string; // PIN 4-6 digit, wajib diisi tiap kali user ditambahkan
 }
 
 /**
@@ -21,6 +22,9 @@ export async function createUser(input: UserFormInput) {
   if (!input.password) {
     throw new Error('Password wajib diisi saat membuat akun baru.');
   }
+  if (!input.pin || !/^\d{4,6}$/.test(input.pin)) {
+    throw new Error('PIN wajib diisi, 4-6 digit angka.');
+  }
   const credential = await createAccount(input.email, input.password);
   await createDoc(COLLECTION, {
     nama: input.nama,
@@ -28,12 +32,19 @@ export async function createUser(input: UserFormInput) {
     username: input.username,
     noHp: input.noHp ?? '',
     role: input.role,
+    pin: input.pin,
     uid: credential.user.uid
   });
   return credential.user.uid;
 }
 
-export async function updateUser(id: string, input: Partial<Omit<UserFormInput, 'password'>>) {
+export async function updateUser(
+  id: string,
+  input: Partial<Omit<UserFormInput, 'password'>>
+) {
+  if (input.pin !== undefined && input.pin !== '' && !/^\d{4,6}$/.test(input.pin)) {
+    throw new Error('PIN harus 4-6 digit angka.');
+  }
   return updateDocById(COLLECTION, id, input);
 }
 

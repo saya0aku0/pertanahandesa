@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/Button';
+import { PemilikFields } from '@/components/PemilikFields';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 import { searchTanah } from '@/modules/master-tanah/tanah.service';
 import { Tanah } from '@/modules/master-tanah/tanah.types';
 import { buatRiwayatPenyatuanLahan } from './riwayat.service';
+import { PEMILIK_KOSONG } from '@/types/pemilik.types';
 import { useEffect } from 'react';
 
 /**
@@ -24,7 +26,7 @@ export function PenyatuanLahanForm() {
   const [dipilih, setDipilih] = useState<Tanah[]>([]);
 
   const [tanggalKejadian, setTanggalKejadian] = useState('');
-  const [namaPemilikBaru, setNamaPemilikBaru] = useState('');
+  const [pemilikBaru, setPemilikBaru] = useState({ ...PEMILIK_KOSONG });
   const [keterangan, setKeterangan] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -67,8 +69,8 @@ export function PenyatuanLahanForm() {
       setError('Pilih minimal 2 bidang tanah yang akan digabung.');
       return;
     }
-    if (!tanggalKejadian || !namaPemilikBaru) {
-      setError('Tanggal kejadian dan nama pemilik baru wajib diisi.');
+    if (!tanggalKejadian || !pemilikBaru.nama || !pemilikBaru.nik || !pemilikBaru.alamatLengkap) {
+      setError('Tanggal kejadian dan data pemilik baru (Nama, NIK, Alamat) wajib diisi.');
       return;
     }
 
@@ -83,7 +85,7 @@ export function PenyatuanLahanForm() {
       const riwayatIds = await buatRiwayatPenyatuanLahan({
         sourceTanahIds: dipilih.map((t) => t.id),
         tanggalKejadian,
-        namaPemilikBaru,
+        pemilikBaru,
         keterangan,
         dokumenUrls
       });
@@ -135,7 +137,7 @@ export function PenyatuanLahanForm() {
                 className="w-full text-left p-3 min-h-[44px] hover:bg-primary-50 text-sm border-b last:border-0"
               >
                 <span className="font-medium">{t.nomorSertifikat}</span>
-                <span className="text-gray-500"> — {t.pemilikSaatIni} ({t.luas.toLocaleString('id-ID')} m²)</span>
+                <span className="text-gray-500"> — {t.pemilikSaatIni?.nama} ({t.luas.toLocaleString('id-ID')} m²)</span>
               </button>
             ))}
           </div>
@@ -152,7 +154,7 @@ export function PenyatuanLahanForm() {
             >
               <div>
                 <span className="font-medium">{t.nomorSertifikat}</span>
-                <span className="text-gray-500"> — {t.luas.toLocaleString('id-ID')} m² — {t.pemilikSaatIni}</span>
+                <span className="text-gray-500"> — {t.luas.toLocaleString('id-ID')} m² — {t.pemilikSaatIni?.nama}</span>
               </div>
               <button
                 type="button"
@@ -181,17 +183,7 @@ export function PenyatuanLahanForm() {
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Nama Pemilik Bidang Gabungan *
-        </label>
-        <input
-          value={namaPemilikBaru}
-          onChange={(e) => setNamaPemilikBaru(e.target.value)}
-          className="w-full border rounded-lg p-3 min-h-[44px]"
-          required
-        />
-      </div>
+      <PemilikFields label="Data Pemilik Bidang Gabungan" value={pemilikBaru} onChange={setPemilikBaru} />
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
@@ -218,9 +210,14 @@ export function PenyatuanLahanForm() {
         {uploading && <p className="text-xs text-gray-500 mt-1">{progressLabel}</p>}
       </div>
 
-      <Button type="submit" disabled={saving || uploading} className="w-full">
-        {saving || uploading ? 'Memproses...' : 'Lanjut: Isi Data Bidang Gabungan →'}
-      </Button>
+      <div className="flex flex-col-reverse md:flex-row gap-2 md:justify-end">
+        <Button type="button" variant="secondary" onClick={() => navigate('/transaksi')} disabled={saving || uploading}>
+          Batal
+        </Button>
+        <Button type="submit" disabled={saving || uploading}>
+          {saving || uploading ? 'Memproses...' : 'Lanjut: Isi Data Bidang Gabungan →'}
+        </Button>
+      </div>
     </form>
   );
 }

@@ -31,33 +31,36 @@ export function Table<T>({
 
   return (
     <>
-      {/* Tampilan tabel — desktop (>=768px) */}
-      <table className="hidden md:table w-full text-sm border-collapse">
-        <thead>
-          <tr className="bg-gray-50 text-left">
-            {columns.map((col) => (
-              <th key={col.key} className="p-3 font-semibold text-gray-700 border-b">
-                {col.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row) => (
-            <tr
-              key={keyExtractor(row)}
-              onClick={() => onRowClick?.(row)}
-              className={`border-b hover:bg-primary-50 ${onRowClick ? 'cursor-pointer' : ''}`}
-            >
+      {/* Tampilan tabel — tablet & desktop (>=768px), bisa di-swipe horizontal
+          kalau kolom terlalu banyak untuk lebar layar (mis. tablet potret) */}
+      <div className="hidden md:block overflow-x-auto allow-native-touch">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="bg-gray-50 text-left">
               {columns.map((col) => (
-                <td key={col.key} className="p-3">
-                  {col.render(row)}
-                </td>
+                <th key={col.key} className="p-3 font-semibold text-gray-700 border-b whitespace-nowrap">
+                  {col.header}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.map((row) => (
+              <tr
+                key={keyExtractor(row)}
+                onClick={() => onRowClick?.(row)}
+                className={`border-b hover:bg-primary-50 ${onRowClick ? 'cursor-pointer' : ''}`}
+              >
+                {columns.map((col) => (
+                  <td key={col.key} className="p-3 break-words">
+                    {col.render(row)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* Tampilan kartu — mobile (<768px) */}
       <div className="md:hidden space-y-3">
@@ -71,8 +74,8 @@ export function Table<T>({
           >
             {columns.map((col) => (
               <div key={col.key} className="flex justify-between gap-3 text-sm">
-                <span className="text-gray-500">{col.header}</span>
-                <span className="text-right font-medium">{col.render(row)}</span>
+                <span className="text-gray-500 break-words">{col.header}</span>
+                <span className="text-right font-medium break-words">{col.render(row)}</span>
               </div>
             ))}
           </div>

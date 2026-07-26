@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { Riwayat } from '@/modules/transaksi/riwayat.types';
 import { Tanah } from './tanah.types';
+import { formatPemilikSingkat } from '@/types/pemilik.types';
 
 interface ExportRow {
   tanah: Tanah;
@@ -35,7 +36,7 @@ export async function exportLaporanExcel(rows: ExportRow[], rentang: { dari: str
       nomorSertifikat: tanah.nomorSertifikat,
       lokasi: tanah.lokasi,
       luas: tanah.luas,
-      pemilikSaatIni: tanah.pemilikSaatIni,
+      pemilikSaatIni: formatPemilikSingkat(tanah.pemilikSaatIni),
       jenisPeristiwa: terbaru?.jenisPeristiwa ?? '-',
       tanggalKejadian: terbaru?.tanggalKejadian ?? '-'
     });
