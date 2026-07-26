@@ -1,5 +1,7 @@
 import {
   signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
   createUserWithEmailAndPassword,
@@ -10,6 +12,14 @@ import { auth } from './config';
 
 export function login(email: string, password: string) {
   return signInWithEmailAndPassword(auth, email, password);
+}
+
+// Login pakai akun Google. Catatan: ini HANYA melakukan autentikasi Google,
+// bukan mendaftarkan user baru — pemetaan role/akses tetap harus sudah ada
+// di Firestore /users (dibuat lebih dulu oleh Superadmin), lihat Pages.tsx.
+export function loginWithGoogle() {
+  const provider = new GoogleAuthProvider();
+  return signInWithPopup(auth, provider);
 }
 
 export function logout() {

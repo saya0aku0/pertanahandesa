@@ -58,3 +58,13 @@ export async function getEmailByUsername(username: string): Promise<string | nul
   const user = await getDocByField<AppUser>(COLLECTION, 'username', username);
   return user?.email ?? null;
 }
+
+/**
+ * Cari profil user berdasarkan email — dipakai untuk validasi login Google.
+ * Login Google TIDAK otomatis mendaftarkan user baru; email hasil login Google
+ * harus sudah terdaftar di Firestore /users (dibuat lebih dulu oleh Superadmin
+ * lewat form Kelola User), kalau tidak ditemukan maka akses ditolak.
+ */
+export async function getUserProfileByEmail(email: string): Promise<(AppUser & { id: string }) | null> {
+  return getDocByField<AppUser>(COLLECTION, 'email', email);
+}
