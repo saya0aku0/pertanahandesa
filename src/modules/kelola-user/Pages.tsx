@@ -27,15 +27,30 @@ export function KelolaUserPage() {
   const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Sembunyikan akun Superadmin dari daftar — akun ini bersifat teknis/pengelola sistem,
-  // tidak untuk ditampilkan atau dikelola lewat menu Kelola User biasa.
-  const visibleDocs = docs.filter((u) => u.role !== 'superadmin');
+  // NOTE: sebelumnya baris ini menyaring/menyembunyikan akun role "superadmin"
+  // dari daftar. Sengaja ditampilkan lagi supaya superadmin bisa dikelola
+  // (edit profil, sync directory, dll) lewat menu ini seperti user lain.
+  const visibleDocs = docs;
 
   const columns: TableColumn<AppUser>[] = [
     { key: 'nama', header: 'Nama', render: (r) => r.nama },
     { key: 'username', header: 'Username', render: (r) => r.username ?? '-' },
     { key: 'email', header: 'Email', render: (r) => r.email },
     { key: 'role', header: 'Role', render: (r) => ROLE_LABEL[r.role] ?? r.role },
+    {
+      key: 'emailVerified',
+      header: 'Email',
+      render: (r) =>
+        r.emailVerified ? (
+          <span className="text-xs font-medium text-green-700 bg-green-50 px-2 py-1 rounded-full whitespace-nowrap">
+            ✓ Terverifikasi
+          </span>
+        ) : (
+          <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-full whitespace-nowrap">
+            Belum diverifikasi
+          </span>
+        )
+    },
     {
       key: 'aksi',
       header: 'Aksi',

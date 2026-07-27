@@ -105,4 +105,16 @@ export function subscribeCollection<T = DocumentData>(
   });
 }
 
+// Subscribe realtime pada SATU dokumen — dipakai layar admin menunggu status
+// verifikasi OTP berubah tanpa perlu refresh manual.
+export function subscribeDoc<T = DocumentData>(
+  collectionName: string,
+  id: string,
+  callback: (data: (T & { id: string }) | null) => void
+) {
+  return onSnapshot(doc(db, collectionName, id), (snap) => {
+    callback(snap.exists() ? { id: snap.id, ...(snap.data() as T) } : null);
+  });
+}
+
 export { where, orderBy, fsLimit as limit };

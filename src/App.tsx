@@ -3,6 +3,7 @@ import { MainLayout } from '@/layouts/MainLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { LoginPage } from '@/modules/auth/Pages';
 import { ResetPasswordPage } from '@/modules/auth/ResetPasswordPage';
+import { VerifyEmailOtpPage } from '@/modules/auth/VerifyEmailOtpPage';
 import { ProfilPage } from '@/modules/profil/Pages';
 import {
   MasterTanahListPage,
@@ -25,6 +26,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/verifikasi-email" element={<VerifyEmailOtpPage />} />
 
         <Route
           element={

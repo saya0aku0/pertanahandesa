@@ -7,7 +7,7 @@ import {
   getDocById,
   setDocById
 } from '@/firebase/firestore';
-import { createAccount } from '@/firebase/auth';
+import { createAccount, sendVerificationEmail } from '@/firebase/auth';
 import { AppUser, UserRole } from '@/modules/auth/auth.types';
 
 const COLLECTION = 'users';
@@ -37,6 +37,11 @@ export interface UserFormInput {
   role: UserRole;
   password?: string; // hanya dipakai saat membuat akun baru
   pin: string; // PIN 4-6 digit, wajib diisi tiap kali user ditambahkan
+  // true kalau email sudah lolos alur OTP (lihat otpVerification.service.ts)
+  // sebelum tombol Simpan ditekan. Kalau true, createUser TIDAK lagi kirim
+  // email verifikasi native Firebase (sudah tidak perlu, ownership sudah
+  // dibuktikan lewat OTP) dan langsung set emailVerified=true di Firestore.
+  emailPreVerified?: boolean;
 }
 
 /**
@@ -58,9 +63,21 @@ export async function createUser(input: UserFormInput) {
     noHp: input.noHp ?? '',
     role: input.role,
     pin: input.pin,
-    uid: credential.user.uid
+    uid: credential.user.uid,
+    emailVerified: !!input.emailPreVerified
   });
   await syncDirectoryEntry(input.username, input.email);
+
+  if (!input.emailPreVerified) {
+    // Fallback lama: kalau form dipakai tanpa melalui alur OTP (mis. dipanggil
+    // dari tempat lain), tetap kirim verifikasi native Firebase seperti biasa.
+    try {
+      await sendVerificationEmail(credential.user);
+    } catch {
+      // best-effort, diabaikan — lihat catatan di sendVerificationEmail
+    }
+  }
+
   return credential.user.uid;
 }
 
@@ -136,4 +153,25 @@ export async function checkEmailRegistered(email: string): Promise<boolean> {
  */
 export async function getUserProfileByEmail(email: string): Promise<(AppUser & { id: string }) | null> {
   return getDocByField<AppUser>(COLLECTION, 'email', email);
+}
+
+/**
+ * Sinkronkan status emailVerified dari Firebase Auth ke Firestore /users,
+ * supaya bisa ditampilkan di kolom "Status Verifikasi" pada Kelola User.
+ *
+ * KETERBATASAN: status di Firestore ini hanya snapshot — baru ter-update
+ * saat user yang bersangkutan login (dipanggil dari useAuthUser). Karena
+ * app ini 100% frontend tanpa Admin SDK, tidak ada cara memeriksa status
+ * verifikasi user lain secara real-time tanpa mereka login dulu.
+ */
+export async function syncEmailVerifiedStatus(uid: string, verified: boolean) {
+  const profile = await getDocByField<AppUser>(COLLECTION, 'uid', uid);
+  if (!profile) return;
+  // Satu arah: hanya naikkan false -> true. Akun yang sudah diverifikasi lewat
+  // OTP saat dibuat (emailVerified=true di Firestore) TIDAK boleh ditimpa balik
+  // jadi false hanya karena Firebase Auth internal (yang tidak kita pakai untuk
+  // akun-akun itu) masih mencatat emailVerified=false secara native.
+  if (verified && !profile.emailVerified) {
+    await updateDocById(COLLECTION, profile.id, { emailVerified: true });
+  }
 }
