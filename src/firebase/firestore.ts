@@ -4,6 +4,7 @@ import {
   getDoc,
   getDocs,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -67,6 +68,17 @@ export async function createDoc<T extends object>(
     createdAt: Timestamp.now()
   });
   return ref.id;
+}
+
+// Tulis dokumen dengan ID yang KITA tentukan sendiri (bukan auto-ID seperti createDoc).
+// Dipakai untuk koleksi kecil semacam "directory" yang doc-id-nya = username,
+// supaya lookup-nya bisa langsung getDocById tanpa query where().
+export async function setDocById<T extends object>(
+  collectionName: string,
+  id: string,
+  data: T
+) {
+  await setDoc(doc(db, collectionName, id), data, { merge: true });
 }
 
 export async function updateDocById(

@@ -35,6 +35,17 @@ service cloud.firestore {
       allow write: if isLoggedIn(); // tanpa RBAC kompleks, sesuai §4
     }
 
+    // Koleksi PUBLIK khusus untuk lookup ringan {username, email} yang
+    // dibutuhkan SEBELUM user login: (1) login pakai username, dan
+    // (2) cek "email sudah terdaftar atau belum" di form Lupa Password.
+    // Sengaja dipisah dari /users supaya field sensitif (PIN, role, dll)
+    // tidak ikut kebuka ke publik. Field yang tersimpan di sini HANYA
+    // username & email, tidak lebih.
+    match /directory/{docId} {
+      allow read: if true;
+      allow write: if isLoggedIn();
+    }
+
     match /otp/{email} {
       allow read, write: if isLoggedIn();
     }
