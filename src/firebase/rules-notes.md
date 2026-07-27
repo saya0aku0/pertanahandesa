@@ -35,32 +35,8 @@ service cloud.firestore {
       allow write: if isLoggedIn(); // tanpa RBAC kompleks, sesuai §4
     }
 
-    // Koleksi PUBLIK khusus untuk lookup ringan {username, email} yang
-    // dibutuhkan SEBELUM user login: (1) login pakai username, dan
-    // (2) cek "email sudah terdaftar atau belum" di form Lupa Password.
-    // Sengaja dipisah dari /users supaya field sensitif (PIN, role, dll)
-    // tidak ikut kebuka ke publik. Field yang tersimpan di sini HANYA
-    // username & email, tidak lebih.
-    match /directory/{docId} {
-      allow read: if true;
-      allow write: if isLoggedIn();
-    }
-
-    // Dipakai untuk alur "Verifikasi Email sebelum Tambah User" (OTP via EmailJS).
-    // - create/read: hanya admin yang sedang login (saat memulai kirim kode).
-    // - update: SENGAJA dibuka untuk publik (pemilik email belum tentu punya
-    //   akun/login), TAPI hanya berhasil kalau kode yang dikirim persis sama
-    //   dengan kode asli tersimpan, belum pernah diverifikasi sebelumnya
-    //   (sekali pakai), dan belum kedaluwarsa. Kode aslinya sendiri TIDAK
-    //   PERNAH bisa dibaca langsung oleh publik lewat Firestore (read tetap
-    //   wajib login) — rule hanya mencocokkan nilai, bukan mengizinkan baca.
     match /otp/{email} {
-      allow read: if isLoggedIn();
-      allow create: if isLoggedIn();
-      allow update: if request.resource.data.verified == true
-        && request.resource.data.code == resource.data.code
-        && resource.data.verified == false
-        && request.time < resource.data.expiresAt;
+      allow read, write: if isLoggedIn();
     }
 
     match /logs/{logId} {

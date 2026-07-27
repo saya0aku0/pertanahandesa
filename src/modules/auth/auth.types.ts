@@ -10,6 +10,5 @@ export interface AppUser {
   // PIN keamanan (4-6 digit) — wajib diisi saat user baru ditambahkan, dipakai untuk
   // verifikasi sebelum aksi Edit/Hapus pada data yang sudah tersimpan (Master Tanah & Transaksi).
   pin?: string;
-  emailVerified?: boolean; // disinkron dari Firebase Auth tiap kali user ini login
   createdAt?: unknown;
 }

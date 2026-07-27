@@ -1,7 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { AvatarMenu } from './AvatarMenu';
 import { useAuthUser } from '@/modules/auth/useAuthUser';
-import { EmailVerificationBanner } from '@/modules/auth/EmailVerificationBanner';
 
 // 4 menu sidebar sesuai §3 PRD — sengaja ringkas supaya gampang dirawat solo dev
 const MENU_ITEMS = [
@@ -53,8 +52,6 @@ export function MainLayout() {
             <AvatarMenu displayName={user?.email ?? 'Pengguna'} />
           </div>
         </header>
-
-        {user && <EmailVerificationBanner user={user} />}
 
         {/* Konten halaman — dibatasi lebar maksimal di layar sangat besar supaya tidak
             kosong berlebihan, tapi tetap penuh & nyaman di HP/tablet */}

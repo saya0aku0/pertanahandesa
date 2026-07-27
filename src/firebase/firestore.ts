@@ -4,7 +4,6 @@ import {
   getDoc,
   getDocs,
   addDoc,
-  setDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -70,17 +69,6 @@ export async function createDoc<T extends object>(
   return ref.id;
 }
 
-// Tulis dokumen dengan ID yang KITA tentukan sendiri (bukan auto-ID seperti createDoc).
-// Dipakai untuk koleksi kecil semacam "directory" yang doc-id-nya = username,
-// supaya lookup-nya bisa langsung getDocById tanpa query where().
-export async function setDocById<T extends object>(
-  collectionName: string,
-  id: string,
-  data: T
-) {
-  await setDoc(doc(db, collectionName, id), data, { merge: true });
-}
-
 export async function updateDocById(
   collectionName: string,
   id: string,
@@ -102,18 +90,6 @@ export function subscribeCollection<T = DocumentData>(
   const q = query(col(collectionName), ...constraints);
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map((d) => ({ id: d.id, ...(d.data() as T) })));
-  });
-}
-
-// Subscribe realtime pada SATU dokumen — dipakai layar admin menunggu status
-// verifikasi OTP berubah tanpa perlu refresh manual.
-export function subscribeDoc<T = DocumentData>(
-  collectionName: string,
-  id: string,
-  callback: (data: (T & { id: string }) | null) => void
-) {
-  return onSnapshot(doc(db, collectionName, id), (snap) => {
-    callback(snap.exists() ? { id: snap.id, ...(snap.data() as T) } : null);
   });
 }
 

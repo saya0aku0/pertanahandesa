@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/Button';
 import { sendResetEmail } from '@/firebase/auth';
-import { checkEmailRegistered } from '@/modules/kelola-user/user.service';
 
 /**
  * Alur "Lupa Password" — versi sederhana native Firebase (Spark plan friendly).
@@ -23,17 +22,6 @@ export function ForgotPasswordForm() {
     setLoading(true);
     setError(null);
     try {
-      // Cek dulu ke koleksi "directory" apakah email ini memang terdaftar
-      // sebagai akun di aplikasi. Kalau tidak ada, langsung kasih tahu jelas
-      // (permintaan eksplisit user — trade-off: ini membuka celah kecil
-      // account enumeration, tapi dianggap acceptable untuk app internal ini).
-      const terdaftar = await checkEmailRegistered(email.trim());
-      if (!terdaftar) {
-        setError('Akun tidak ditemukan. Periksa kembali alamat email Anda.');
-        setLoading(false);
-        return;
-      }
-
       await sendResetEmail(email.trim());
       setSent(true);
       setCooldown(60);
@@ -44,7 +32,9 @@ export function ForgotPasswordForm() {
         });
       }, 1000);
     } catch (err) {
-      setError('Gagal mengirim email reset. Coba lagi beberapa saat.');
+      // Firebase sengaja tidak membedakan "email tidak terdaftar" vs error lain
+      // demi mencegah enumerasi akun — tampilkan pesan generik yang aman.
+      setError('Gagal mengirim email reset. Periksa kembali alamat email Anda.');
     } finally {
       setLoading(false);
     }

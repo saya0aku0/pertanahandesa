@@ -13,6 +13,7 @@ import { jalankanGuardHapusRiwayat, GuardResult } from './relasiGuard';
 import { RiwayatForm } from './RiwayatForm';
 import { PenyatuanLahanForm } from './PenyatuanLahanForm';
 import { PerubahanDataForm } from './PerubahanDataForm';
+import { PilihBidangPecahLahan } from './PilihBidangPecahLahan';
 import { Riwayat } from './riwayat.types';
 
 const JENIS_LABEL: Record<string, string> = {
@@ -192,7 +193,10 @@ export function TransaksiListPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-lg font-bold">Transaksi</h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="secondary" onClick={() => navigate('/transaksi/pecah-lahan')}>
+            + Pemecahan Lahan
+          </Button>
           <Button variant="secondary" onClick={() => navigate('/transaksi/penyatuan')}>
             + Penyatuan Lahan
           </Button>
@@ -293,6 +297,19 @@ export function TransaksiPenyatuanPage() {
     <div className="space-y-4">
       <h1 className="text-lg font-bold">Penyatuan Lahan</h1>
       <PenyatuanLahanForm />
+    </div>
+  );
+}
+
+/**
+ * Titik masuk "+ Pemecahan Lahan" dari halaman Transaksi — cari & pilih bidang
+ * sumber dulu, lalu diteruskan ke alur Perubahan Data (§ PilihBidangPecahLahan.tsx).
+ */
+export function TransaksiPecahLahanPage() {
+  return (
+    <div className="space-y-4">
+      <h1 className="text-lg font-bold">Pemecahan Lahan</h1>
+      <PilihBidangPecahLahan />
     </div>
   );
 }

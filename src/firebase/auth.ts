@@ -7,7 +7,6 @@ import {
   createUserWithEmailAndPassword,
   confirmPasswordReset,
   sendPasswordResetEmail,
-  sendEmailVerification,
   reauthenticateWithCredential,
   updatePassword,
   EmailAuthProvider,
@@ -34,21 +33,6 @@ export function logout() {
 export function createAccount(email: string, password: string) {
   // Dipakai Owner/Superadmin saat menambah akun Staff/Owner baru (§10.4)
   return createUserWithEmailAndPassword(auth, email, password);
-}
-
-/**
- * Kirim email verifikasi RESMI dari Firebase ke akun tertentu. Catatan penting:
- * Firebase Auth di sisi client HANYA mengizinkan ini untuk akun yang SEDANG
- * login (`auth.currentUser`) — tidak bisa dipakai admin untuk memicu verifikasi
- * ke akun user lain tanpa Admin SDK (server). Makanya fungsi ini dipanggil di
- * 2 tempat: (1) sesaat setelah createAccount saat admin menambah user baru
- * (saat itu sesi login otomatis pindah ke akun baru tsb), dan (2) tombol
- * "Kirim Ulang" yang HANYA muncul untuk akun milik sendiri yang sedang login.
- */
-export function sendVerificationEmail(user: User) {
-  return sendEmailVerification(user, {
-    url: `${window.location.origin}/login`
-  });
 }
 
 export function watchAuthState(callback: (user: User | null) => void) {

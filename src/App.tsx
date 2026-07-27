@@ -3,7 +3,6 @@ import { MainLayout } from '@/layouts/MainLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { LoginPage } from '@/modules/auth/Pages';
 import { ResetPasswordPage } from '@/modules/auth/ResetPasswordPage';
-import { VerifyEmailOtpPage } from '@/modules/auth/VerifyEmailOtpPage';
 import { ProfilPage } from '@/modules/profil/Pages';
 import {
   MasterTanahListPage,
@@ -15,6 +14,7 @@ import {
   TransaksiListPage,
   TransaksiTambahPage,
   TransaksiPenyatuanPage,
+  TransaksiPecahLahanPage,
   TransaksiPerubahanDataPage
 } from '@/modules/transaksi/Pages';
 import { KelolaUserPage } from '@/modules/kelola-user/Pages';
@@ -26,7 +26,6 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/verifikasi-email" element={<VerifyEmailOtpPage />} />
 
         <Route
           element={
@@ -48,6 +47,7 @@ export default function App() {
           <Route path="/transaksi" element={<TransaksiListPage />} />
           <Route path="/transaksi/tambah" element={<TransaksiTambahPage />} />
           <Route path="/transaksi/penyatuan" element={<TransaksiPenyatuanPage />} />
+          <Route path="/transaksi/pecah-lahan" element={<TransaksiPecahLahanPage />} />
           <Route path="/transaksi/perubahan-data" element={<TransaksiPerubahanDataPage />} />
 
           {/* Menu 3: Kelola User */}
