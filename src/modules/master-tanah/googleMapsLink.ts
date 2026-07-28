@@ -1,4 +1,12 @@
 /**
+ * CATATAN: helper parsing koordinat ini SUDAH TIDAK dipakai oleh TanahForm lagi
+ * (atas permintaan, Master Tanah sekarang cukup menyimpan link Google Maks apa
+ * adanya, tanpa fitur ambil-koordinat-otomatis). File ini dibiarkan ada (tidak
+ * dihapus, sesuai instruksi menjaga struktur file) kalau suatu saat fitur
+ * koordinat lat/long mau diaktifkan lagi.
+ */
+
+/**
  * Ekstrak koordinat (lat, long) dari link Google Maps.
  * Mendukung: URL lengkap yang mengandung "@lat,long", parameter q=/ll=/query=,
  * atau teks koordinat polos "lat, long" hasil copy-paste langsung dari Google Maps

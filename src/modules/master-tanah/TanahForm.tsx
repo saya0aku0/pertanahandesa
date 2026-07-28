@@ -12,7 +12,6 @@ import { jalankanGuardEditHapusTanah, GuardResult } from '@/modules/transaksi/re
 import { finalisasiPenyatuanLahan } from '@/modules/transaksi/riwayat.service';
 import { Tanah, TanahFormInput } from './tanah.types';
 import { PEMILIK_KOSONG } from '@/types/pemilik.types';
-import { isShortGoogleMapsLink, parseGoogleMapsLink } from './googleMapsLink';
 import { gabungkanLampiran } from '@/utils/lampiran';
 
 interface TanahFormProps {
@@ -47,8 +46,6 @@ export function TanahForm({ existing, onSaved }: TanahFormProps) {
     luas: existing?.luas ?? 0,
     lokasi: existing?.lokasi ?? '',
     googleMapsLink: existing?.googleMapsLink ?? '',
-    lat: existing?.lat,
-    long: existing?.long,
     pemilikSaatIni: existing?.pemilikSaatIni ?? { ...PEMILIK_KOSONG },
     status: existing?.status ?? 'aktif',
     parentTanahId: existing?.parentTanahId ?? prefillParentId ?? null,
@@ -70,11 +67,6 @@ export function TanahForm({ existing, onSaved }: TanahFormProps) {
   const [confirmHapus, setConfirmHapus] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // Latitude/Longitude readOnly secara default (harus lewat "Ambil Koordinat"),
-  // bisa dibuka manual kalau link Google Maps tidak bisa diproses otomatis.
-  const [manualLatLong, setManualLatLong] = useState(false);
-  const [mapsError, setMapsError] = useState<string | null>(null);
-
   function update<K extends keyof TanahFormInput>(key: K, value: TanahFormInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
@@ -91,34 +83,6 @@ export function TanahForm({ existing, onSaved }: TanahFormProps) {
     });
   }
   const luasOtomatis = !!(form.panjang && form.lebar);
-
-  function handleAmbilKoordinat() {
-    setMapsError(null);
-    const link = (form.googleMapsLink ?? '').trim();
-    if (!link) {
-      setMapsError('Tempel link atau koordinat Google Maps terlebih dahulu.');
-      return;
-    }
-
-    const parsed = parseGoogleMapsLink(link);
-    if (parsed) {
-      update('lat', parsed.lat);
-      update('long', parsed.long);
-      setManualLatLong(false);
-      return;
-    }
-
-    if (isShortGoogleMapsLink(link)) {
-      setMapsError(
-        'Link pendek (maps.app.goo.gl) tidak bisa dibaca otomatis oleh browser. Klik "Buka Link" di sebelah kanan, tunggu sampai redirect selesai, lalu salin URL LENGKAP dari address bar dan tempel ulang di sini.'
-      );
-      return;
-    }
-
-    setMapsError(
-      'Format link/koordinat tidak dikenali. Pastikan link mengandung koordinat (contoh: ".../@-8.045,111.905,17z") atau tempel koordinat "lat, long" langsung.'
-    );
-  }
 
   async function doSave(statusSimpan: 'aktif' | 'draft') {
     setSaving(true);
@@ -379,72 +343,22 @@ export function TanahForm({ existing, onSaved }: TanahFormProps) {
           />
         </div>
 
-        {/* Link Google Maps -> auto isi Lat/Long */}
+        {/* Link Google Maps — disimpan apa adanya, tanpa perlu koordinat lat/long */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Link Google Maps
           </label>
-          <div className="flex gap-2">
-            <input
-              value={form.googleMapsLink}
-              onChange={(e) => update('googleMapsLink', e.target.value)}
-              className="flex-1 border rounded-lg p-3 min-h-[44px]"
-              placeholder="https://maps.app.goo.gl/... atau -8.045, 111.905"
-            />
-            {form.googleMapsLink && isShortGoogleMapsLink(form.googleMapsLink) && (
-              <a
-                href={form.googleMapsLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="shrink-0 border rounded-lg px-3 min-h-[44px] flex items-center text-sm text-primary-700 hover:bg-gray-50"
-              >
-                Buka Link
-              </a>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={handleAmbilKoordinat}
-            className="mt-2 text-sm text-primary-700 hover:underline"
-          >
-            Ambil Koordinat dari Link
-          </button>
-          {mapsError && <p className="text-xs text-red-600 mt-1">{mapsError}</p>}
+          <input
+            value={form.googleMapsLink}
+            onChange={(e) => update('googleMapsLink', e.target.value)}
+            className="w-full border rounded-lg p-3 min-h-[44px]"
+            placeholder="https://maps.app.goo.gl/... atau link Google Maps lainnya"
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Cukup tempel link Google Maps-nya (boleh link pendek dari tombol Share di HP) —
+            langsung tersimpan apa adanya, tanpa perlu diproses lagi.
+          </p>
         </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-            <input
-              type="number"
-              inputMode="decimal"
-              value={form.lat ?? ''}
-              onChange={(e) => update('lat', e.target.value ? Number(e.target.value) : undefined)}
-              className="w-full border rounded-lg p-3 min-h-[44px] disabled:bg-gray-100 disabled:text-gray-500"
-              readOnly={!manualLatLong}
-              disabled={!manualLatLong}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-            <input
-              type="number"
-              inputMode="decimal"
-              value={form.long ?? ''}
-              onChange={(e) => update('long', e.target.value ? Number(e.target.value) : undefined)}
-              className="w-full border rounded-lg p-3 min-h-[44px] disabled:bg-gray-100 disabled:text-gray-500"
-              readOnly={!manualLatLong}
-              disabled={!manualLatLong}
-            />
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => setManualLatLong((m) => !m)}
-          className="text-xs text-gray-500 hover:underline -mt-2"
-        >
-          {manualLatLong ? 'Kunci lagi (isi lewat link)' : 'Isi Latitude/Longitude manual'}
-        </button>
 
         {/* Pemilik — data diri lengkap: Nama, NIK, Alamat Lengkap */}
         <PemilikFields

@@ -197,29 +197,21 @@ function TanahDetailContent({ tanah }: { tanah: Tanah & { id: string } }) {
             <span className="font-medium">{tanah.petugasUkur}</span>
           </div>
         )}
-        {tanah.lat != null && tanah.long != null && (
+        {tanah.googleMapsLink && (
           <div className="flex justify-between">
-            <span className="text-gray-500">Koordinat</span>
-            <span className="font-medium">
-              {tanah.lat}, {tanah.long}
-              {tanah.googleMapsLink && (
-                <>
-                  {' '}
-                  <a
-                    href={
-                      tanah.googleMapsLink.startsWith('http')
-                        ? tanah.googleMapsLink
-                        : `https://www.google.com/maps?q=${tanah.lat},${tanah.long}`
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary-700 hover:underline"
-                  >
-                    (buka peta)
-                  </a>
-                </>
-              )}
-            </span>
+            <span className="text-gray-500">Lokasi Peta</span>
+            {tanah.googleMapsLink.startsWith('http') ? (
+              <a
+                href={tanah.googleMapsLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary-700 hover:underline"
+              >
+                Buka di Google Maps
+              </a>
+            ) : (
+              <span className="font-medium">{tanah.googleMapsLink}</span>
+            )}
           </div>
         )}
       </div>
