@@ -7,6 +7,7 @@ import {
   createUserWithEmailAndPassword,
   confirmPasswordReset,
   sendPasswordResetEmail,
+  sendEmailVerification,
   reauthenticateWithCredential,
   updatePassword,
   EmailAuthProvider,
@@ -37,6 +38,15 @@ export function createAccount(email: string, password: string) {
 
 export function watchAuthState(callback: (user: User | null) => void) {
   return onAuthStateChanged(auth, callback);
+}
+
+/**
+ * Kirim ulang email verifikasi bawaan Firebase Auth ke akun yang SEDANG LOGIN
+ * (dipakai oleh EmailVerificationBanner). Ini native Firebase, gratis di Spark
+ * Plan, tidak perlu Cloud Functions/server sendiri.
+ */
+export function sendVerificationEmail(user: User) {
+  return sendEmailVerification(user);
 }
 
 /**

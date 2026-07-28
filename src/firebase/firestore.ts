@@ -4,6 +4,7 @@ import {
   getDoc,
   getDocs,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -112,6 +113,18 @@ export async function deleteDocById(collectionName: string, id: string) {
   await deleteDoc(doc(db, collectionName, id));
 }
 
+/** Simpan dokumen dengan ID yang SUDAH DITENTUKAN sendiri (bukan auto-ID seperti
+ * createDoc) — dipakai mis. untuk dokumen OTP yang ID-nya = email (lihat
+ * otpVerification.service.ts), supaya bisa langsung di-get/subscribe dari ID
+ * yang sudah diketahui tanpa query tambahan. */
+export async function setDocById<T extends object>(
+  collectionName: string,
+  id: string,
+  data: T
+) {
+  await setDoc(doc(db, collectionName, id), bersihkanUndefined(data));
+}
+
 // Subscribe realtime — dipakai TERBATAS hanya untuk ringkasan dashboard (§13, hemat read)
 export function subscribeCollection<T = DocumentData>(
   collectionName: string,
@@ -121,6 +134,23 @@ export function subscribeCollection<T = DocumentData>(
   const q = query(col(collectionName), ...constraints);
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map((d) => ({ id: d.id, ...(d.data() as T) })));
+  });
+}
+
+/** Subscribe realtime SATU dokumen berdasarkan ID — dipakai TERBATAS (mis. status
+ * verifikasi OTP di otpVerification.service.ts) supaya UI update otomatis tanpa
+ * perlu refresh, tanpa harus subscribe seluruh collection (hemat read, §13). */
+export function subscribeDoc<T = DocumentData>(
+  collectionName: string,
+  id: string,
+  callback: (data: (T & { id: string }) | null) => void
+) {
+  return onSnapshot(doc(db, collectionName, id), (snap) => {
+    if (!snap.exists()) {
+      callback(null);
+      return;
+    }
+    callback({ id: snap.id, ...(snap.data() as T) });
   });
 }
 

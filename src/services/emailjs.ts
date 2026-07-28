@@ -20,13 +20,19 @@ function assertConfigured() {
 }
 
 /**
- * Kirim kode OTP untuk alur "Lupa Password" (hybrid, §9.4 / §10.6).
- * Nama variabel HARUS cocok persis dengan template EmailJS "One-Time Password":
- *   - {{email}}    → tujuan email (field "To Email" di template)
- *   - {{passcode}} → kode OTP 6 digit
- *   - {{time}}     → waktu kedaluwarsa yang ditampilkan ke pengguna (contoh: "15:32")
+ * Kirim kode OTP — dipakai untuk 2 alur berbeda yang berbagi template EmailJS yang sama:
+ *   1) "Lupa Password" (§9.4/§10.6) — hanya {{email}}, {{passcode}}, {{time}}
+ *   2) Verifikasi email saat Superadmin menambah user baru (otpVerification.service.ts)
+ *      — tambahan {{link}} (opsional) supaya pemilik email bisa langsung klik.
+ * Kalau template EmailJS Anda belum punya variabel {{link}}, tidak masalah — EmailJS
+ * akan mengabaikan variabel yang tidak dipakai template, tidak akan error.
  */
-export async function kirimOtp(params: { email: string; passcode: string; time: string }) {
+export async function kirimOtp(params: {
+  email: string;
+  passcode: string;
+  time: string;
+  link?: string;
+}) {
   assertConfigured();
   return emailjs.send(SERVICE_ID, TEMPLATE_OTP, params, { publicKey: PUBLIC_KEY });
 }
