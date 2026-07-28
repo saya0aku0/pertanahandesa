@@ -18,27 +18,6 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 
-/**
- * Firestore addDoc/updateDoc menolak field dengan value `undefined`
- * (error: "Unsupported field value: undefined"). Field seperti lat/long
- * yang opsional dan tidak diisi user akan bernilai undefined, jadi harus
- * dibersihkan dulu sebelum dikirim ke Firestore.
- */
-function stripUndefined<T>(data: T): T {
-  if (Array.isArray(data)) {
-    return data.map((item) => stripUndefined(item)) as unknown as T;
-  }
-  if (data && typeof data === 'object' && !(data instanceof Timestamp)) {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
-      if (value === undefined) continue;
-      result[key] = value && typeof value === 'object' ? stripUndefined(value) : value;
-    }
-    return result as T;
-  }
-  return data;
-}
-
 // Helper generik Firestore — dipakai lintas modul supaya hemat kode & konsisten
 // Semua fungsi di sini dirancang agar mudah dipagination / dibatasi untuk hemat read (§13)
 
@@ -79,12 +58,43 @@ export async function getPaginated<T = DocumentData>(
   return { docs, lastDoc, hasMore: snap.docs.length === pageSize };
 }
 
+/**
+ * Firestore MENOLAK field bernilai `undefined` (beda dengan `null`) — errornya persis
+ * "Unsupported field value: undefined". Ini gampang kejadian di form-form kita karena
+ * banyak field opsional (mis. lat/long dari Google Maps link yang belum diisi).
+ * Helper ini membersihkan `undefined` (jadi field itu tidak ikut dikirim sama sekali)
+ * di level utama DAN satu level di dalam object bersarang (mis. pemilikSaatIni.nik),
+ * supaya createDoc/updateDocById aman dipakai apa adanya oleh semua form.
+ */
+function bersihkanUndefined<T>(data: T): T {
+  if (Array.isArray(data) || data === null || typeof data !== 'object') return data;
+  // Jangan "bongkar" object khusus seperti Firestore Timestamp — biarkan apa adanya.
+  if (data instanceof Timestamp || data instanceof Date) return data;
+
+  const hasil: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+    if (value === undefined) continue;
+    if (
+      value !== null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      !(value instanceof Timestamp) &&
+      !(value instanceof Date)
+    ) {
+      hasil[key] = bersihkanUndefined(value);
+    } else {
+      hasil[key] = value;
+    }
+  }
+  return hasil as T;
+}
+
 export async function createDoc<T extends object>(
   collectionName: string,
   data: T
 ) {
   const ref = await addDoc(col(collectionName), {
-    ...stripUndefined(data),
+    ...bersihkanUndefined(data),
     createdAt: Timestamp.now()
   });
   return ref.id;
@@ -95,7 +105,7 @@ export async function updateDocById(
   id: string,
   data: Partial<Record<string, unknown>>
 ) {
-  await updateDoc(doc(db, collectionName, id), stripUndefined(data));
+  await updateDoc(doc(db, collectionName, id), bersihkanUndefined(data));
 }
 
 export async function deleteDocById(collectionName: string, id: string) {

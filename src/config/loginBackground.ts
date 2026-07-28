@@ -1,10 +1,12 @@
 /**
  * URL gambar background halaman Login.
  *
- * ⚠️ INI PLACEHOLDER — ganti `LOGIN_BACKGROUND_URL` di bawah dengan link Cloudinary
- * gambar asli begitu sudah tersedia (format: https://res.cloudinary.com/<cloud_name>/image/upload/.../nama-file.jpg).
- * Untuk sementara pakai contoh publik dari akun demo Cloudinary supaya halaman
- * login tetap bisa langsung dilihat hasilnya.
+ * Sementara pakai foto sawah/pedesaan (gratis, Pixabay Content License — bebas
+ * dipakai tanpa atribusi) supaya sesuai tema aplikasi "Riwayat Tanah Desa".
+ *
+ * ⚠️ Kalau nanti Anda punya gambar sendiri, upload ke Cloudinary lalu ganti
+ * `LOGIN_BACKGROUND_URL` di bawah dengan link Cloudinary-nya
+ * (format: https://res.cloudinary.com/<cloud_name>/image/upload/.../nama-file.jpg).
  */
 export const LOGIN_BACKGROUND_URL =
-  'https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,w_1600,e_blur:200/landscape-panorama.jpg';
+  'https://cdn.pixabay.com/photo/2021/08/31/13/58/field-6588875_1280.jpg';
