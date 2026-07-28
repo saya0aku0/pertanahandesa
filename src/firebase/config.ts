@@ -1,5 +1,9 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentSingleTabManager
+} from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 
@@ -25,7 +29,16 @@ if (!firebaseConfig.apiKey) {
 }
 
 export const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+
+// Offline persistence (gratis, tetap Spark Plan) — penting untuk pemakaian
+// SATU petugas/SATU perangkat di kantor desa yang koneksinya kadang putus-putus:
+// data terakhir tetap bisa dibuka offline, dan tulisan baru otomatis ter-sync
+// begitu koneksi kembali. Pakai "single tab manager" karena memang dipakai
+// di 1 device (bukan banyak tab/banyak user sekaligus).
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentSingleTabManager({}) })
+});
+
 export const auth = getAuth(app);
 
 // Analytics hanya berjalan di browser yang mendukung (tidak di SSR/server) — dibungkus aman

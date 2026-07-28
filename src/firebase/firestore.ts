@@ -18,6 +18,27 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 
+/**
+ * Firestore addDoc/updateDoc menolak field dengan value `undefined`
+ * (error: "Unsupported field value: undefined"). Field seperti lat/long
+ * yang opsional dan tidak diisi user akan bernilai undefined, jadi harus
+ * dibersihkan dulu sebelum dikirim ke Firestore.
+ */
+function stripUndefined<T>(data: T): T {
+  if (Array.isArray(data)) {
+    return data.map((item) => stripUndefined(item)) as unknown as T;
+  }
+  if (data && typeof data === 'object' && !(data instanceof Timestamp)) {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+      if (value === undefined) continue;
+      result[key] = value && typeof value === 'object' ? stripUndefined(value) : value;
+    }
+    return result as T;
+  }
+  return data;
+}
+
 // Helper generik Firestore — dipakai lintas modul supaya hemat kode & konsisten
 // Semua fungsi di sini dirancang agar mudah dipagination / dibatasi untuk hemat read (§13)
 
@@ -63,7 +84,7 @@ export async function createDoc<T extends object>(
   data: T
 ) {
   const ref = await addDoc(col(collectionName), {
-    ...data,
+    ...stripUndefined(data),
     createdAt: Timestamp.now()
   });
   return ref.id;
@@ -74,7 +95,7 @@ export async function updateDocById(
   id: string,
   data: Partial<Record<string, unknown>>
 ) {
-  await updateDoc(doc(db, collectionName, id), data);
+  await updateDoc(doc(db, collectionName, id), stripUndefined(data));
 }
 
 export async function deleteDocById(collectionName: string, id: string) {

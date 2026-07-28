@@ -195,15 +195,13 @@ export function TanahForm({ existing, onSaved }: TanahFormProps) {
     await doSave(statusSimpan);
   }
 
-  // Simpan (final) — validasi wajib penuh, lalu (kalau edit data tersimpan) minta PIN dulu.
+  // Simpan (final) — validasi wajib penuh. PIN TIDAK diminta di sini lagi (§ solo-user):
+  // untuk pemakaian 1 petugas/1 perangkat, konfirmasi PIN berulang di Edit cuma jadi
+  // gesekan tanpa manfaat keamanan tambahan. PIN tetap wajib khusus untuk Hapus.
   async function handleSimpan() {
     setError(null);
     if (!validasiWajib()) return;
-    if (existing) {
-      requestPin(() => jalankanGuardLaluSimpan('aktif'));
-    } else {
-      await jalankanGuardLaluSimpan('aktif');
-    }
+    await jalankanGuardLaluSimpan('aktif');
   }
 
   // Pending (Drafted) — dipakai kalau proses ukur/terbit sertifikat baru masih berjalan,
@@ -215,11 +213,7 @@ export function TanahForm({ existing, onSaved }: TanahFormProps) {
       setError('Nomor sertifikat wajib diisi walau statusnya masih Pending.');
       return;
     }
-    if (existing) {
-      requestPin(() => doSave('draft'));
-    } else {
-      await doSave('draft');
-    }
+    await doSave('draft');
   }
 
   function handleBatal() {

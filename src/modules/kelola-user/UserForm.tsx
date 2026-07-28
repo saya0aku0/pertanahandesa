@@ -12,9 +12,10 @@ interface UserFormProps {
 }
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
-  { value: 'owner', label: 'Owner' },
-  { value: 'staff', label: 'Staff' },
-  { value: 'superadmin', label: 'Superadmin' }
+  { value: 'owner', label: 'Petugas Utama' },
+  { value: 'staff', label: 'Akun Cadangan (Emergency Access)' }
+  // 'superadmin' sengaja TIDAK ditawarkan di sini — akun teknis pengelola sistem,
+  // hanya dibuat/diubah manual lewat Firebase Console, bukan lewat form ini.
 ];
 
 /** Form Tambah/Edit User — dipakai Owner/Superadmin untuk kelola akses staf desa (§10.4) */
@@ -24,7 +25,7 @@ export function UserForm({ open, onClose, onSaved, existing }: UserFormProps) {
     email: existing?.email ?? '',
     username: existing?.username ?? '',
     noHp: existing?.noHp ?? '',
-    role: existing?.role ?? 'staff',
+    role: existing?.role ?? 'owner',
     password: '',
     pin: ''
   });
@@ -170,8 +171,8 @@ export function UserForm({ open, onClose, onSaved, existing }: UserFormProps) {
             required={!existing}
           />
           <p className="text-xs text-gray-400 mt-1">
-            PIN ini akan diminta setiap kali user ini menekan tombol Edit atau Hapus pada
-            data yang sudah tersimpan di Master Tanah/Transaksi.
+            PIN ini akan diminta khusus saat user ini menekan tombol <strong>Hapus</strong> pada
+            data yang sudah tersimpan di Master Tanah/Transaksi (bukan saat Edit biasa).
           </p>
         </div>
 

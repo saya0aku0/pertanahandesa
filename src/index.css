@@ -85,3 +85,76 @@ input[type='checkbox'], input[type='radio'] {
   margin-left: auto;
   margin-right: auto;
 }
+
+/* =====================================================================
+   ANIMASI HALAMAN LOGIN — kartu masuk halus, dan animasi "reveal" setelah
+   berhasil login sebelum berpindah ke dashboard.
+   ===================================================================== */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-login-card {
+  animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes successReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-success-reveal {
+  animation: successReveal 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-overlay-fade {
+  animation: overlayFadeIn 0.3s ease-out both;
+}
+
+/* Entrance halus untuk konten utama setelah login (MainLayout) */
+@keyframes contentReveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-content-reveal {
+  animation: contentReveal 0.45s ease-out both;
+}
+
+/* Hormati preferensi pengguna yang menonaktifkan animasi (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  .animate-login-card,
+  .animate-success-reveal,
+  .animate-overlay-fade,
+  .animate-content-reveal {
+    animation: none !important;
+  }
+}

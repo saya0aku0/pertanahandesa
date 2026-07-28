@@ -1,6 +1,9 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { AvatarMenu } from './AvatarMenu';
 import { useAuthUser } from '@/modules/auth/useAuthUser';
+import { BackupReminder } from '@/components/BackupReminder';
+import { InstallPrompt } from '@/components/InstallPrompt';
+import { DraftReminder } from '@/components/DraftReminder';
 
 // 4 menu sidebar sesuai §3 PRD — sengaja ringkas supaya gampang dirawat solo dev
 const MENU_ITEMS = [
@@ -14,7 +17,7 @@ export function MainLayout() {
   const { user } = useAuthUser();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row animate-content-reveal">
       {/* Sidebar — tablet & desktop (>=768px), sesuai §13 Mobile UX */}
       <aside
         className="hidden md:flex md:flex-col w-56 lg:w-64 bg-white border-r shrink-0"
@@ -56,6 +59,9 @@ export function MainLayout() {
         {/* Konten halaman — dibatasi lebar maksimal di layar sangat besar supaya tidak
             kosong berlebihan, tapi tetap penuh & nyaman di HP/tablet */}
         <main className="flex-1 p-4 pb-24 md:pb-4 w-full max-w-[1400px] mx-auto">
+          <InstallPrompt />
+          <BackupReminder />
+          <DraftReminder />
           <Outlet />
         </main>
       </div>

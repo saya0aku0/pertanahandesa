@@ -5,6 +5,8 @@ import { getEmailByUsername, getUserProfileByEmail } from '@/modules/kelola-user
 import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
+import { LOGIN_BACKGROUND_URL } from '@/config/loginBackground';
+import { catatLoginLog } from './loginLog.service';
 
 export function LoginPage() {
   const [identifier, setIdentifier] = useState(''); // boleh diisi email ATAU username
@@ -13,7 +15,15 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
   const navigate = useNavigate();
+
+  // Animasi "reveal" singkat sebelum pindah ke dashboard, biar transisi setelah
+  // berhasil login terasa lebih halus (bukan langsung loncat halaman).
+  function tampilkanSuksesLaluPindah() {
+    setLoginSuccess(true);
+    setTimeout(() => navigate('/master-tanah'), 700);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,7 +46,8 @@ export function LoginPage() {
       }
 
       await login(emailToUse, password);
-      navigate('/master-tanah');
+      catatLoginLog(emailToUse, input.includes('@') ? 'email' : 'username');
+      tampilkanSuksesLaluPindah();
     } catch (err) {
       setError('Email/Username atau password salah.');
     } finally {
@@ -61,7 +72,8 @@ export function LoginPage() {
         return;
       }
 
-      navigate('/master-tanah');
+      catatLoginLog(email ?? '(tidak ada email)', 'google');
+      tampilkanSuksesLaluPindah();
     } catch (err) {
       setError('Gagal masuk dengan Google. Coba lagi.');
       setGoogleLoading(false);
@@ -69,8 +81,11 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 sm:p-6">
-      <div className="w-full max-w-sm sm:max-w-md md:max-w-lg bg-white rounded-xl shadow-sm border p-5 sm:p-8 space-y-4">
+    <div
+      className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative bg-gray-900 bg-cover bg-center"
+      style={{ backgroundImage: `linear-gradient(rgba(15,23,42,0.55), rgba(15,23,42,0.65)), url(${LOGIN_BACKGROUND_URL})` }}
+    >
+      <div className="w-full max-w-sm sm:max-w-md md:max-w-lg bg-white rounded-xl shadow-2xl shadow-black/40 border p-5 sm:p-8 space-y-4 animate-login-card">
         <div className="text-center">
           <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-primary-800 leading-snug break-words">
             Pencatatan Surat Tanah &amp; Kepemilikan
@@ -155,6 +170,18 @@ export function LoginPage() {
       <Modal open={showForgot} onClose={() => setShowForgot(false)} title="Lupa Password">
         <ForgotPasswordForm />
       </Modal>
+
+      {/* Animasi "reveal" singkat setelah berhasil login, sebelum pindah ke dashboard */}
+      {loginSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-800/90 animate-overlay-fade">
+          <div className="text-center animate-success-reveal">
+            <div className="mx-auto mb-3 w-16 h-16 rounded-full bg-white flex items-center justify-center text-3xl">
+              ✓
+            </div>
+            <p className="text-white font-semibold">Berhasil masuk...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

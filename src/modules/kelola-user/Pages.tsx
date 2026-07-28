@@ -10,11 +10,18 @@ import { AppUser } from '@/modules/auth/auth.types';
 
 const ROLE_LABEL: Record<string, string> = {
   superadmin: 'Superadmin',
-  owner: 'Owner',
-  staff: 'Staff'
+  owner: 'Petugas Utama',
+  staff: 'Akun Cadangan (Emergency Access)'
 };
 
-/** Menu 3: Kelola User — daftar akun Owner/Staff/Superadmin (§10.4) */
+// Batas jumlah akun yang disarankan untuk pemakaian 1 petugas/1 perangkat:
+// 1 akun utama (dipakai sehari-hari) + 1 akun cadangan (mis. Kepala Desa/Sekdes,
+// dipakai HANYA kalau akun utama lupa password/tidak bisa diakses). Bukan hard-limit
+// teknis (tetap bisa ditambah lewat Firebase Console kalau benar perlu), cuma
+// pengingat di UI supaya tidak menambah akun tanpa perlu jelas.
+const BATAS_AKUN_DISARANKAN = 2;
+
+/** Menu 3: Kelola User — 1 akun utama + 1 akun cadangan untuk pemakaian jangka panjang (§10.4) */
 export function KelolaUserPage() {
   const { docs, loading, error, hasMore, loadMore, reload } = useFirestoreCollection<AppUser>(
     'users',
@@ -30,6 +37,7 @@ export function KelolaUserPage() {
   // Sembunyikan akun Superadmin dari daftar — akun ini bersifat teknis/pengelola sistem,
   // tidak untuk ditampilkan atau dikelola lewat menu Kelola User biasa.
   const visibleDocs = docs.filter((u) => u.role !== 'superadmin');
+  const sudahMencapaiBatas = visibleDocs.length >= BATAS_AKUN_DISARANKAN;
 
   const columns: TableColumn<AppUser>[] = [
     { key: 'nama', header: 'Nama', render: (r) => r.nama },
@@ -82,17 +90,37 @@ export function KelolaUserPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold">Kelola User</h1>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-lg font-bold">Kelola User</h1>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Disarankan cukup 2 akun: 1 <strong>Petugas Utama</strong> (dipakai sehari-hari) + 1{' '}
+            <strong>Akun Cadangan</strong> untuk jaga-jaga (mis. Kepala Desa/Sekdes) kalau akun
+            utama tidak bisa diakses.
+          </p>
+        </div>
         <Button
           onClick={() => {
             setEditing(undefined);
             setFormOpen(true);
           }}
+          disabled={sudahMencapaiBatas}
+          title={
+            sudahMencapaiBatas
+              ? 'Sudah ada 2 akun. Edit akun yang ada, atau hapus salah satu dulu kalau memang perlu akun baru.'
+              : undefined
+          }
         >
           + Tambah User
         </Button>
       </div>
+      {sudahMencapaiBatas && (
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          Sudah ada {visibleDocs.length} akun (batas yang disarankan). Kalau memang butuh akun
+          tambahan, tetap bisa lewat Firebase Console — tapi untuk 1 petugas 1 perangkat,
+          biasanya 2 akun ini sudah cukup.
+        </p>
+      )}
 
       <Table columns={columns} data={visibleDocs} keyExtractor={(r) => r.id} emptyMessage="Belum ada user." />
       {hasMore && (

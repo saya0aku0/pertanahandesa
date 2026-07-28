@@ -11,6 +11,7 @@ import { Button } from '@/components/Button';
 import { Tanah } from './tanah.types';
 import { getTanahBySlug } from './tanah.service';
 import { isGoogleDriveLink } from '@/components/LampiranField';
+import { QrCode } from '@/components/QrCode';
 
 /** Menu 1: Master Tanah — dashboard ringkas + tabel data terkini + tombol Export (§3, §10.1) */
 export function MasterTanahListPage() {
@@ -96,21 +97,30 @@ function TanahDetailContent({ tanah }: { tanah: Tanah & { id: string } }) {
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-lg font-bold">{tanah.nomorSertifikat}</h1>
-          <p className="text-sm text-gray-500">{tanah.lokasi}</p>
+        <div className="flex items-start gap-4 flex-wrap">
           {tanah.slug && (
-            <p className="text-xs text-gray-400 mt-1 break-all">
-              Link Sertifikat:{' '}
-              <a
-                href={`/master-tanah/sertifikat/${tanah.slug}`}
-                className="text-primary-700 hover:underline"
-              >
-                /master-tanah/sertifikat/{tanah.slug}
-              </a>
-            </p>
+            <QrCode value={`${window.location.origin}/master-tanah/sertifikat/${tanah.slug}`} size={96} />
           )}
-          <div className="flex gap-2 mt-2 flex-wrap">
+          <div>
+            <h1 className="text-lg font-bold">{tanah.nomorSertifikat}</h1>
+            <p className="text-sm text-gray-500">{tanah.lokasi}</p>
+            {tanah.slug && (
+              <p className="text-xs text-gray-400 mt-1 break-all">
+                Link Sertifikat:{' '}
+                <a
+                  href={`/master-tanah/sertifikat/${tanah.slug}`}
+                  className="text-primary-700 hover:underline"
+                >
+                  /master-tanah/sertifikat/{tanah.slug}
+                </a>
+              </p>
+            )}
+            {tanah.slug && (
+              <p className="text-xs text-gray-400 mt-0.5">
+                QR di samping bisa dicetak & ditempel di map/berkas fisik untuk akses cepat.
+              </p>
+            )}
+            <div className="flex gap-2 mt-2 flex-wrap">
 
             {tanah.status === 'draft' && (
               <span className="inline-block text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">
@@ -127,6 +137,7 @@ function TanahDetailContent({ tanah }: { tanah: Tanah & { id: string } }) {
                 Arsip — Sudah Dipecah
               </span>
             )}
+            </div>
           </div>
         </div>
         {tanah.status !== 'draft' &&
