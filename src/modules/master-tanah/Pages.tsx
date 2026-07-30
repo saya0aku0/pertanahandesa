@@ -10,7 +10,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Button } from '@/components/Button';
 import { Tanah } from './tanah.types';
 import { getTanahBySlug } from './tanah.service';
-import { isGoogleDriveLink } from '@/components/LampiranField';
+import { isGoogleDriveLink, isImageUrl } from '@/components/LampiranField';
 import { QrCode } from '@/components/QrCode';
 
 /** Menu 1: Master Tanah — dashboard ringkas + tabel data terkini + tombol Export (§3, §10.1) */
@@ -219,18 +219,33 @@ function TanahDetailContent({ tanah }: { tanah: Tanah & { id: string } }) {
       {tanah.lampiranUrls && tanah.lampiranUrls.length > 0 && (
         <div className="bg-white border rounded-xl p-4 space-y-2 text-sm">
           <p className="font-semibold text-gray-700">Lampiran</p>
-          {tanah.lampiranUrls.map((url, i) => (
-            <a
-              key={i}
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block text-primary-700 hover:underline text-xs truncate"
-            >
-              {isGoogleDriveLink(url) ? '📁 Google Drive — ' : '📎 '}
-              {url}
-            </a>
-          ))}
+          <div className="flex flex-wrap gap-2">
+            {tanah.lampiranUrls.map((url, i) =>
+              isImageUrl(url) ? (
+                <a
+                  key={i}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Buka ukuran penuh"
+                  className="block w-24 h-24 rounded-lg overflow-hidden border shrink-0 hover:opacity-80"
+                >
+                  <img src={url} alt={`Lampiran ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                </a>
+              ) : (
+                <a
+                  key={i}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-primary-700 hover:underline text-xs truncate max-w-full"
+                >
+                  {isGoogleDriveLink(url) ? '📁 Google Drive — ' : '📎 '}
+                  {url}
+                </a>
+              )
+            )}
+          </div>
         </div>
       )}
 

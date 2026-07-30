@@ -12,6 +12,14 @@ export function isGoogleDriveLink(url: string): boolean {
   return /drive\.google\.com|docs\.google\.com/i.test(url);
 }
 
+/** Deteksi apakah URL lampiran ini gambar yang bisa langsung di-preview sebagai
+ * thumbnail — baik dari Cloudinary (`/image/upload/...`) maupun ekstensi gambar
+ * umum. Link Google Drive/PDF/dll tetap ditampilkan sebagai teks link biasa. */
+export function isImageUrl(url: string): boolean {
+  if (/\/image\/upload\//i.test(url)) return true; // pola URL Cloudinary
+  return /\.(jpe?g|png|gif|webp|avif|svg)(\?.*)?$/i.test(url);
+}
+
 interface LampiranFieldProps {
   label?: string;
   driveLinks: string[];
@@ -61,20 +69,35 @@ export function LampiranField({
 
       {/* Existing/tersimpan sebelumnya */}
       {existingUrls.length > 0 && (
-        <div className="space-y-1">
+        <div className="space-y-2">
           <p className="text-xs font-medium text-gray-500">Lampiran tersimpan:</p>
-          {existingUrls.map((url, i) => (
-            <a
-              key={i}
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block text-xs text-primary-700 hover:underline truncate"
-            >
-              {isGoogleDriveLink(url) ? '📁 Google Drive — ' : '📎 '}
-              {url}
-            </a>
-          ))}
+          <div className="flex flex-wrap gap-2">
+            {existingUrls.map((url, i) =>
+              isImageUrl(url) ? (
+                <a
+                  key={i}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Buka ukuran penuh"
+                  className="block w-20 h-20 rounded-lg overflow-hidden border bg-white shrink-0 hover:opacity-80"
+                >
+                  <img src={url} alt={`Lampiran ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                </a>
+              ) : (
+                <a
+                  key={i}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-xs text-primary-700 hover:underline truncate max-w-full"
+                >
+                  {isGoogleDriveLink(url) ? '📁 Google Drive — ' : '📎 '}
+                  {url}
+                </a>
+              )
+            )}
+          </div>
         </div>
       )}
 

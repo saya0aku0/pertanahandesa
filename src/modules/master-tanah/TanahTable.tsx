@@ -6,7 +6,6 @@ import { Button } from '@/components/Button';
 import { ListControls } from '@/components/ListControls';
 import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
 import { Tanah } from './tanah.types';
-import { formatPemilikSingkat } from '@/types/pemilik.types';
 
 const SORT_OPTIONS = [
   { value: 'nomorSertifikat', label: 'No. Sertifikat' },
@@ -81,23 +80,26 @@ export function TanahTable() {
 
   const columns: TableColumn<Tanah>[] = [
     { key: 'nomorSertifikat', header: 'No. Sertifikat', render: (r) => r.nomorSertifikat },
-    {
-      key: 'tanggalTerbitSertifikat',
-      header: 'Tgl. Terbit',
-      render: (r) => r.tanggalTerbitSertifikat ?? '-'
-    },
-    { key: 'nomorSuratUkur', header: 'No. Surat Ukur', render: (r) => r.nomorSuratUkur ?? '-' },
     { key: 'lokasi', header: 'Lokasi', render: (r) => r.lokasi },
     { key: 'luas', header: 'Luas (m²)', render: (r) => r.luas.toLocaleString('id-ID') },
-    { key: 'pemilikSaatIni', header: 'Pemilik Saat Ini', render: (r) => formatPemilikSingkat(r.pemilikSaatIni) },
+    { key: 'pemilikSaatIni', header: 'NIK Pemilik', render: (r) => r.pemilikSaatIni?.nik || '-' },
     {
       key: 'status',
-      header: 'Status',
+      header: '',
       render: (r) =>
         r.status === 'draft' ? (
-          <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">Pending (Draft)</span>
+          <span
+            className="relative inline-flex h-3 w-3"
+            title="Pending (Draft) — belum disimpan final"
+          >
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+            <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-500" />
+          </span>
         ) : (
-          <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded-full">Aktif</span>
+          <span
+            className="inline-flex h-3 w-3 rounded-full bg-green-500"
+            title="Aktif — sudah tersimpan final"
+          />
         )
     },
     {
