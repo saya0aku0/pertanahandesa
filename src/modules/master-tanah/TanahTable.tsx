@@ -9,7 +9,7 @@ import { Tanah } from './tanah.types';
 
 const SORT_OPTIONS = [
   { value: 'nomorSertifikat', label: 'No. Sertifikat' },
-  { value: 'lokasi', label: 'Lokasi' },
+  { value: 'lokasi', label: 'Lokasi Tanah' },
   { value: 'luas', label: 'Luas' },
   { value: 'tanggalTerbitSertifikat', label: 'Tgl. Terbit' }
 ];
@@ -80,9 +80,43 @@ export function TanahTable() {
 
   const columns: TableColumn<Tanah>[] = [
     { key: 'nomorSertifikat', header: 'No. Sertifikat', render: (r) => r.nomorSertifikat },
-    { key: 'lokasi', header: 'Lokasi', render: (r) => r.lokasi },
-    { key: 'luas', header: 'Luas (m²)', render: (r) => r.luas.toLocaleString('id-ID') },
+    {
+      key: 'lokasi',
+      header: 'Lokasi Tanah',
+      render: (r) => (
+        <div className="min-w-[200px] sm:min-w-[260px] whitespace-normal leading-snug">
+          {r.lokasi}
+        </div>
+      )
+    },
     { key: 'pemilikSaatIni', header: 'NIK Pemilik', render: (r) => r.pemilikSaatIni?.nik || '-' },
+    {
+      key: 'sertifikat',
+      header: 'Detail Sertifikat',
+      render: (r) =>
+        r.slug ? (
+          <a
+            href={`/master-tanah/sertifikat/${r.slug}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-primary-700 text-sm hover:underline"
+          >
+            Lihat Detail
+          </a>
+        ) : (
+          '-'
+        )
+    },
+    { key: 'luas', header: 'Luas (m²)', render: (r) => r.luas.toLocaleString('id-ID') },
+    {
+      key: 'induk',
+      header: 'Asal Bidang',
+      render: (r) => {
+        if (r.statusGabung === 'sudah-digabung') return 'Sudah Digabung (Arsip)';
+        if (r.parentTanahIds && r.parentTanahIds.length > 0) return 'Hasil Penyatuan Lahan';
+        if (r.parentTanahId) return 'Hasil Pecah Lahan';
+        return 'Bidang Awal';
+      }
+    },
     {
       key: 'status',
       header: '',
@@ -100,32 +134,6 @@ export function TanahTable() {
             className="inline-flex h-3 w-3 rounded-full bg-green-500"
             title="Aktif — sudah tersimpan final"
           />
-        )
-    },
-    {
-      key: 'induk',
-      header: 'Asal Bidang',
-      render: (r) => {
-        if (r.statusGabung === 'sudah-digabung') return 'Sudah Digabung (Arsip)';
-        if (r.parentTanahIds && r.parentTanahIds.length > 0) return 'Hasil Penyatuan Lahan';
-        if (r.parentTanahId) return 'Hasil Pecah Lahan';
-        return 'Bidang Awal';
-      }
-    },
-    {
-      key: 'sertifikat',
-      header: 'Detail Sertifikat',
-      render: (r) =>
-        r.slug ? (
-          <a
-            href={`/master-tanah/sertifikat/${r.slug}`}
-            onClick={(e) => e.stopPropagation()}
-            className="text-primary-700 text-sm hover:underline"
-          >
-            Lihat Detail
-          </a>
-        ) : (
-          '-'
         )
     }
   ];
