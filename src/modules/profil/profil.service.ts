@@ -17,3 +17,9 @@ export async function updateProfil(
 ) {
   return updateDocById('users', docId, data);
 }
+
+/** Simpan PIN baru — dipanggil SETELAH password berhasil diverifikasi (lihat
+ * verifyPassword di firebase/auth.ts), tidak butuh PIN lama sama sekali. */
+export async function updateProfilPin(docId: string, pinBaru: string) {
+  return updateDocById('users', docId, { pin: pinBaru });
+}

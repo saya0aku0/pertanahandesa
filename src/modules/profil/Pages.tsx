@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { PinBoxInput } from '@/components/PinBoxInput';
 import { useAuthUser } from '@/modules/auth/useAuthUser';
-import { changePassword } from '@/firebase/auth';
-import { getProfil, updateProfil } from './profil.service';
+import { changePassword, verifyPassword } from '@/firebase/auth';
+import { getProfil, updateProfil, updateProfilPin } from './profil.service';
 
 export function ProfilPage() {
   const { user } = useAuthUser();
@@ -101,6 +102,7 @@ export function ProfilPage() {
       </div>
 
       <UbahPasswordForm />
+      <UbahPinForm docId={docId} />
     </div>
   );
 }
@@ -204,6 +206,105 @@ function UbahPasswordForm() {
       </div>
       <Button onClick={handleSubmit} disabled={saving}>
         {saving ? 'Menyimpan...' : 'Ganti Kata Sandi'}
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Ganti PIN keamanan — SENGAJA tidak minta PIN lama (beda dari Ganti Kata Sandi
+ * di atas). Sebagai gantinya, wajib masukkan Kata Sandi akun untuk membuktikan
+ * ini benar pemilik akun, baru PIN baru boleh disimpan.
+ */
+function UbahPinForm({ docId }: { docId: string | null }) {
+  const [pinBaru, setPinBaru] = useState('');
+  const [konfirmasiPinBaru, setKonfirmasiPinBaru] = useState('');
+  const [kataSandi, setKataSandi] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [sukses, setSukses] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  function validasi(): boolean {
+    if (!docId) {
+      setError('Data profil belum ditemukan, tidak bisa menyimpan PIN.');
+      return false;
+    }
+    if (!pinBaru || !konfirmasiPinBaru || !kataSandi) {
+      setError('Semua field wajib diisi.');
+      return false;
+    }
+    if (!/^\d{4,6}$/.test(pinBaru)) {
+      setError('PIN baru harus 4-6 digit angka.');
+      return false;
+    }
+    if (pinBaru !== konfirmasiPinBaru) {
+      setError('Konfirmasi PIN baru tidak sama dengan PIN baru.');
+      return false;
+    }
+    return true;
+  }
+
+  async function handleSubmit() {
+    setError(null);
+    setSukses(null);
+    if (!validasi() || !docId) return;
+
+    setSaving(true);
+    try {
+      // Buktikan pemilik akun lewat Kata Sandi — bukan PIN lama, sesuai desain fitur ini.
+      await verifyPassword(kataSandi);
+      await updateProfilPin(docId, pinBaru);
+      setSukses('PIN berhasil diganti.');
+      setPinBaru('');
+      setKonfirmasiPinBaru('');
+      setKataSandi('');
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        setError('Kata sandi salah.');
+      } else if (code === 'auth/too-many-requests') {
+        setError('Terlalu banyak percobaan. Coba lagi beberapa saat lagi.');
+      } else {
+        setError('Gagal mengganti PIN. Coba lagi.');
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4 border-t pt-6">
+      <h2 className="text-lg font-bold">Ganti PIN</h2>
+      <p className="text-xs text-gray-400">
+        Tidak perlu PIN lama — cukup buat PIN baru dan masukkan Kata Sandi akun Anda untuk
+        membuktikan kepemilikan akun.
+      </p>
+      {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+      {sukses && <p className="text-sm bg-primary-50 text-primary-800 p-3 rounded-lg">{sukses}</p>}
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">PIN Baru</label>
+        <PinBoxInput value={pinBaru} onChange={setPinBaru} />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Konfirmasi PIN Baru
+        </label>
+        <PinBoxInput value={konfirmasiPinBaru} onChange={setKonfirmasiPinBaru} />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Kata Sandi</label>
+        <input
+          type="password"
+          value={kataSandi}
+          onChange={(e) => setKataSandi(e.target.value)}
+          className="w-full border rounded-lg p-3 min-h-[44px]"
+          autoComplete="current-password"
+          placeholder="Masukkan kata sandi akun untuk konfirmasi"
+        />
+      </div>
+      <Button onClick={handleSubmit} disabled={saving}>
+        {saving ? 'Menyimpan...' : 'Simpan PIN'}
       </Button>
     </div>
   );

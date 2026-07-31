@@ -83,3 +83,17 @@ export async function changePassword(currentPassword: string, newPassword: strin
   await reauthenticateWithCredential(user, credential);
   await updatePassword(user, newPassword);
 }
+
+/**
+ * Cocokkan Kata Sandi TANPA mengubah apa pun — dipakai sebagai syarat Ganti PIN
+ * (bukti kepemilikan akun), berbeda dari Ganti Kata Sandi di atas yang benar-benar
+ * mengubah password. Melempar error kalau password salah.
+ */
+export async function verifyPassword(password: string) {
+  const user = auth.currentUser;
+  if (!user || !user.email) {
+    throw new Error('Sesi login tidak ditemukan. Silakan login ulang.');
+  }
+  const credential = EmailAuthProvider.credential(user.email, password);
+  await reauthenticateWithCredential(user, credential);
+}
