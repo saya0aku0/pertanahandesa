@@ -1,4 +1,4 @@
-import { collection, getDocs, orderBy, query, where, limit } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import {
   createDoc,
@@ -45,13 +45,13 @@ export async function getRiwayat(id: string) {
 }
 
 export async function getRiwayatByTanah(tanahId: string): Promise<Riwayat[]> {
-  const q = query(
-    collection(db, COLLECTION),
-    where('tanahId', '==', tanahId),
-    orderBy('tanggalKejadian', 'desc')
-  );
+  // Sengaja TIDAK pakai orderBy di query Firestore (where + orderBy field beda butuh
+  // composite index yang harus dibuat manual di Firebase Console). Diurutkan di sisi
+  // klien saja setelah data diambil — hasilnya sama, tanpa perlu setup index apa pun.
+  const q = query(collection(db, COLLECTION), where('tanahId', '==', tanahId));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Riwayat, 'id'>) }));
+  const hasil = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Riwayat, 'id'>) }));
+  return hasil.sort((a, b) => (b.tanggalKejadian ?? '').localeCompare(a.tanggalKejadian ?? ''));
 }
 
 export async function getRiwayatPage(pageSize = 25, cursor?: unknown) {
@@ -60,16 +60,14 @@ export async function getRiwayatPage(pageSize = 25, cursor?: unknown) {
 
 /** Ambil riwayat kedua-terbaru untuk suatu bidang (dipakai guard relasi §11.3) */
 export async function getRiwayatKeduaTerbaru(tanahId: string, excludeId: string): Promise<Riwayat | null> {
-  const q = query(
-    collection(db, COLLECTION),
-    where('tanahId', '==', tanahId),
-    orderBy('tanggalKejadian', 'desc'),
-    limit(5)
-  );
+  // Sama seperti getRiwayatByTanah: hindari orderBy di query (butuh composite index),
+  // urutkan & batasi di sisi klien saja.
+  const q = query(collection(db, COLLECTION), where('tanahId', '==', tanahId));
   const snap = await getDocs(q);
   const docs = snap.docs
     .map((d) => ({ id: d.id, ...(d.data() as Omit<Riwayat, 'id'>) }))
-    .filter((r) => r.id !== excludeId);
+    .filter((r) => r.id !== excludeId)
+    .sort((a, b) => (b.tanggalKejadian ?? '').localeCompare(a.tanggalKejadian ?? ''));
   return docs[0] ?? null;
 }
 

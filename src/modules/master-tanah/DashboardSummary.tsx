@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { collection, getCountFromServer, query, where, Timestamp } from 'firebase/firestore';
+import { collection, getCountFromServer, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { Riwayat } from '@/modules/transaksi/riwayat.types';
 
 interface Summary {
   totalBidang: number;
@@ -39,27 +40,13 @@ export function DashboardSummary() {
 
       const tanahCountSnap = await getCountFromServer(collection(db, 'tanah'));
 
-      const jualBeliQ = query(
-        collection(db, 'riwayat'),
-        where('jenisPeristiwa', '==', 'jual-beli'),
-        where('tanggalKejadian', '>=', startTs)
-      );
-      const warisQ = query(
-        collection(db, 'riwayat'),
-        where('jenisPeristiwa', '==', 'waris'),
-        where('tanggalKejadian', '>=', startTs)
-      );
-      const pecahQ = query(
-        collection(db, 'riwayat'),
-        where('jenisPeristiwa', '==', 'pecah-lahan'),
-        where('tanggalKejadian', '>=', startTs)
-      );
-
-      const [jualBeliCount, warisCount, pecahCount] = await Promise.all([
-        getCountFromServer(jualBeliQ),
-        getCountFromServer(warisQ),
-        getCountFromServer(pecahQ)
-      ]);
+      // Satu query filter tunggal (tanggalKejadian saja) — TIDAK butuh composite index
+      // sama sekali (beda dari where(jenisPeristiwa) + where(tanggalKejadian) yang butuh
+      // index gabungan). Penghitungan per jenis peristiwa dilakukan di sisi klien; datanya
+      // cuma transaksi bulan berjalan jadi tetap ringan.
+      const bulanIniQ = query(collection(db, 'riwayat'), where('tanggalKejadian', '>=', startTs));
+      const bulanIniSnap = await getDocs(bulanIniQ);
+      const bulanIniDocs = bulanIniSnap.docs.map((d) => d.data() as Riwayat);
 
       if (!aktif) return;
 
@@ -69,9 +56,9 @@ export function DashboardSummary() {
       setSummary({
         totalBidang: tanahCountSnap.data().count,
         totalLuas: 0, // TODO: isi dari /stats/summary jika ingin akurat tanpa full scan
-        jumlahJualBeliBulanIni: jualBeliCount.data().count,
-        jumlahWarisBulanIni: warisCount.data().count,
-        jumlahPecahLahanBulanIni: pecahCount.data().count
+        jumlahJualBeliBulanIni: bulanIniDocs.filter((r) => r.jenisPeristiwa === 'jual-beli').length,
+        jumlahWarisBulanIni: bulanIniDocs.filter((r) => r.jenisPeristiwa === 'waris').length,
+        jumlahPecahLahanBulanIni: bulanIniDocs.filter((r) => r.jenisPeristiwa === 'pecah-lahan').length
       });
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import { createDoc, getPaginated, orderBy, where } from '@/firebase/firestore';
+import { createDoc, getPaginated, where } from '@/firebase/firestore';
 
 // Pakai collection /logs yang MEMANG SUDAH ADA rule-nya di rules-notes.md
 // (allow create/read: if isLoggedIn()) — supaya fitur ini tidak butuh ubah
@@ -35,11 +35,19 @@ export async function catatLoginLog(email: string, metode: MetodeLogin) {
   }
 }
 
+function keWaktu(value: unknown): number {
+  const v = value as { toMillis?: () => number };
+  return typeof v?.toMillis === 'function' ? v.toMillis() : 0;
+}
+
 export async function getLoginLogTerbaru(jumlah = 10) {
+  // Sengaja HANYA filter 1 field (tipe) tanpa orderBy — where + orderBy field beda
+  // butuh composite index yang harus dibuat manual di Firebase Console. Ambil batch
+  // lebih besar lalu urutkan & potong di sisi klien (collection ini kecil, aman).
   const { docs } = await getPaginated<LoginLogEntry>(
     COLLECTION,
-    [where('tipe', '==', 'login'), orderBy('createdAt', 'desc')],
-    jumlah
+    [where('tipe', '==', 'login')],
+    Math.max(jumlah * 5, 50)
   );
-  return docs;
+  return docs.sort((a, b) => keWaktu(b.createdAt) - keWaktu(a.createdAt)).slice(0, jumlah);
 }

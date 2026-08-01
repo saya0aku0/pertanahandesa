@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { getPaginated } from '@/firebase/firestore';
-import { getRiwayatByTanah } from '@/modules/transaksi/riwayat.service';
 import { exportLaporanExcel } from '@/modules/master-tanah/exportExcel';
+import { unduhBackupJson } from '@/modules/master-tanah/exportJson';
 import { Tanah } from '@/modules/master-tanah/tanah.types';
+import { Riwayat } from '@/modules/transaksi/riwayat.types';
 
 const STORAGE_KEY = 'backupReminderState';
 
@@ -31,8 +32,10 @@ function tulisState(state: BackupReminderState) {
 /**
  * Banner pengingat "Backup Data Tahunan" — penting untuk pemakaian jangka panjang
  * oleh SATU petugas SATU perangkat (bertahun-tahun sampai pensiun). Kalau device
- * rusak/hilang atau project Firebase bermasalah, salinan Excel offline ini jadi
- * jaring pengaman terakhir. Sepenuhnya client-side, gratis di Spark Plan.
+ * rusak/hilang atau project Firebase bermasalah, salinan offline ini jadi jaring
+ * pengaman terakhir. Dua pilihan format: Excel (mudah dibaca) dan JSON (lossless,
+ * cocok untuk restore/pindah data persis seperti aslinya). Sepenuhnya client-side,
+ * gratis di Spark Plan.
  */
 export function BackupReminder() {
   const [tampil, setTampil] = useState(false);
@@ -48,24 +51,54 @@ export function BackupReminder() {
     setTampil(!sudahBackupTahunIni && !masihDitunda);
   }, []);
 
-  async function handleBackupSekarang() {
+  async function ambilSemuaData() {
+    // Ambil SEMUA bidang tanah & SEMUA riwayat (pageSize besar — dijalankan sesekali
+    // per tahun, jadi konsumsi read Firestore-nya tidak masalah sama sekali di Spark Plan).
+    const [{ docs: semuaTanah }, { docs: semuaRiwayat }] = await Promise.all([
+      getPaginated<Tanah>('tanah', [], 5000),
+      getPaginated<Riwayat>('riwayat', [], 5000)
+    ]);
+    return { semuaTanah, semuaRiwayat };
+  }
+
+  function tandaiSelesai() {
+    tulisState({ tahunBackupTerakhir: new Date().getFullYear() });
+    setSelesai(true);
+    setTimeout(() => setTampil(false), 2500);
+  }
+
+  async function handleBackupExcel() {
     setProcessing(true);
     setError(null);
     try {
-      // Ambil SEMUA bidang tanah (pageSize besar — dijalankan sesekali per tahun,
-      // jadi konsumsi read Firestore-nya tidak masalah sama sekali di Spark Plan).
-      const { docs: semuaTanah } = await getPaginated<Tanah>('tanah', [], 5000);
-      const rows = await Promise.all(
-        semuaTanah.map(async (tanah) => ({
-          tanah,
-          riwayat: await getRiwayatByTanah(tanah.id)
-        }))
-      );
+      const { semuaTanah, semuaRiwayat } = await ambilSemuaData();
+      // Format Excel butuh riwayat dikelompokkan per bidang tanah (bukan daftar datar)
+      const riwayatPerTanah = new Map<string, (Riwayat & { id: string })[]>();
+      for (const r of semuaRiwayat) {
+        const list = riwayatPerTanah.get(r.tanahId) ?? [];
+        list.push(r);
+        riwayatPerTanah.set(r.tanahId, list);
+      }
+      const rows = semuaTanah.map((tanah) => ({
+        tanah,
+        riwayat: riwayatPerTanah.get(tanah.id) ?? []
+      }));
       await exportLaporanExcel(rows, { dari: 'semua', sampai: 'semua' });
+      tandaiSelesai();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Gagal membuat file backup.');
+    } finally {
+      setProcessing(false);
+    }
+  }
 
-      tulisState({ tahunBackupTerakhir: new Date().getFullYear() });
-      setSelesai(true);
-      setTimeout(() => setTampil(false), 2500);
+  async function handleBackupJson() {
+    setProcessing(true);
+    setError(null);
+    try {
+      const { semuaTanah, semuaRiwayat } = await ambilSemuaData();
+      unduhBackupJson(semuaTanah, semuaRiwayat);
+      tandaiSelesai();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal membuat file backup.');
     } finally {
@@ -90,14 +123,15 @@ export function BackupReminder() {
         </p>
         {!selesai && (
           <p className="text-xs text-amber-700 mt-0.5">
-            Simpan salinan Excel semua data (Master Tanah &amp; Riwayat) di luar aplikasi —
-            jaga-jaga kalau perangkat rusak/hilang. Cukup sekali setahun.
+            Simpan salinan semua data (Master Tanah &amp; Riwayat) di luar aplikasi — jaga-jaga
+            kalau perangkat rusak/hilang. Cukup sekali setahun. Excel untuk dibaca-baca, JSON
+            kalau nanti perlu dipulihkan/dipindah persis seperti aslinya.
           </p>
         )}
         {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
       </div>
       {!selesai && (
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-2 shrink-0 flex-wrap">
           <button
             type="button"
             onClick={handleTunda}
@@ -108,11 +142,19 @@ export function BackupReminder() {
           </button>
           <button
             type="button"
-            onClick={handleBackupSekarang}
+            onClick={handleBackupJson}
+            disabled={processing}
+            className="border border-amber-600 text-amber-700 text-sm font-medium rounded-lg px-4 min-h-[44px] hover:bg-amber-100 disabled:opacity-60"
+          >
+            {processing ? 'Memproses...' : 'Backup JSON'}
+          </button>
+          <button
+            type="button"
+            onClick={handleBackupExcel}
             disabled={processing}
             className="bg-amber-600 text-white text-sm font-medium rounded-lg px-4 min-h-[44px] hover:bg-amber-700 disabled:opacity-60"
           >
-            {processing ? 'Membuat backup...' : 'Backup Sekarang'}
+            {processing ? 'Memproses...' : 'Backup Excel'}
           </button>
         </div>
       )}

@@ -53,8 +53,7 @@ dan field wajib tidak kosong / luas tidak negatif — bukan pembatasan hak akses
 ## Catatan tambahan: collection `/logs`
 
 Dipakai untuk mencatat riwayat login (lihat `src/modules/auth/loginLog.service.ts`,
-ditampilkan di halaman Pusat Bantuan). Query-nya memfilter `tipe == 'login'` sekaligus
-mengurutkan `createdAt` menurun, jadi Firestore akan minta **composite index** saat
-pertama kali dijalankan. Kalau muncul error "The query requires an index" di console
-browser, klik saja link yang diberikan Firestore di pesan error tersebut (otomatis
-membuatkan index yang tepat, gratis di Spark Plan, prosesnya cuma beberapa menit).
+ditampilkan di halaman Pusat Bantuan). Query-nya sengaja HANYA filter 1 field
+(`tipe == 'login'`, tanpa `orderBy` di sisi Firestore) — pengurutan berdasarkan
+waktu login dilakukan di sisi klien (JavaScript), supaya TIDAK perlu bikin
+composite index apa pun di Firebase Console.
