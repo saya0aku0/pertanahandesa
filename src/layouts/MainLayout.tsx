@@ -1,9 +1,14 @@
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { AvatarMenu } from './AvatarMenu';
 import { useAuthUser } from '@/modules/auth/useAuthUser';
 import { BackupReminder } from '@/components/BackupReminder';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { DraftReminder } from '@/components/DraftReminder';
+import { getUserProfileByEmail } from '@/modules/kelola-user/user.service';
+import { ROLE_LABEL } from '@/modules/kelola-user/Pages';
+import { AppUser } from '@/modules/auth/auth.types';
+import { getKopSurat, KopSurat } from '@/modules/pengaturan/kopSurat.service';
 
 // 4 menu sidebar sesuai §3 PRD — sengaja ringkas supaya gampang dirawat solo dev
 const MENU_ITEMS = [
@@ -15,12 +20,24 @@ const MENU_ITEMS = [
 
 export function MainLayout() {
   const { user } = useAuthUser();
+  const [profil, setProfil] = useState<(AppUser & { id: string }) | null>(null);
+  const [kopSurat, setKopSurat] = useState<KopSurat | null>(null);
+
+  useEffect(() => {
+    if (user?.email) {
+      getUserProfileByEmail(user.email).then(setProfil);
+    }
+  }, [user?.email]);
+
+  useEffect(() => {
+    getKopSurat().then(setKopSurat);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row animate-content-reveal">
       {/* Sidebar — tablet & desktop (>=768px), sesuai §13 Mobile UX */}
       <aside
-        className="hidden md:flex md:flex-col w-56 lg:w-64 bg-white border-r shrink-0"
+        className="hidden md:flex md:flex-col w-56 lg:w-64 bg-white border-r shrink-0 md:h-screen md:sticky md:top-0"
         style={{ paddingLeft: 'env(safe-area-inset-left)' }}
       >
         <div className="p-4 font-bold text-primary-800 text-lg border-b break-words">
@@ -42,6 +59,22 @@ export function MainLayout() {
             </NavLink>
           ))}
         </nav>
+
+        {/* Info user yang sedang login — nama lengkap, jabatan, & akses cepat ke Setting Profil */}
+        <div className="mt-auto border-t p-3" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}>
+          <p className="text-sm font-semibold text-gray-800 truncate">
+            {profil?.nama || user?.email || 'Pengguna'}
+          </p>
+          <p className="text-xs text-gray-500 truncate">
+            {profil ? ROLE_LABEL[profil.role] ?? profil.role : ''}
+          </p>
+          <NavLink
+            to="/profil"
+            className="mt-1.5 inline-flex items-center gap-1 text-xs text-primary-700 hover:underline min-h-[32px]"
+          >
+            ⚙️ Setting Profil
+          </NavLink>
+        </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -51,8 +84,15 @@ export function MainLayout() {
           style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)' }}
         >
           <span className="font-bold text-primary-800 md:hidden break-words">Riwayat Tanah Desa</span>
-          <div className="ml-auto">
-            <AvatarMenu displayName={user?.email ?? 'Pengguna'} />
+          <div className="ml-auto flex items-center gap-3">
+            {kopSurat?.logoKabupatenUrl && (
+              <img
+                src={kopSurat.logoKabupatenUrl}
+                alt="Logo Kabupaten"
+                className="w-9 h-9 object-contain"
+              />
+            )}
+            <AvatarMenu displayName={profil?.nama || user?.email || 'Pengguna'} />
           </div>
         </header>
 

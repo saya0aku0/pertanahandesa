@@ -3,6 +3,7 @@ import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
 import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
 import { getRiwayatByTanah } from '@/modules/transaksi/riwayat.service';
+import { getKopSurat } from '@/modules/pengaturan/kopSurat.service';
 import { exportLaporanExcel } from './exportExcel';
 import { exportLaporanPdf } from './exportPdf';
 import { Tanah } from './tanah.types';
@@ -61,7 +62,10 @@ export function ExportPanel() {
       const rows = await buildRows();
       const rentang = { dari: dari || 'semua', sampai: sampai || 'semua' };
       if (format === 'excel') await exportLaporanExcel(rows, rentang);
-      else exportLaporanPdf(rows, rentang);
+      else {
+        const kopSurat = await getKopSurat();
+        await exportLaporanPdf(rows, rentang, kopSurat);
+      }
       setOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal membuat laporan.');
@@ -78,7 +82,7 @@ export function ExportPanel() {
         <div className="space-y-4">
           {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Dari Tanggal</label>
               <input

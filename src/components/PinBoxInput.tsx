@@ -70,7 +70,7 @@ export function PinBoxInput({
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-1.5 sm:gap-2 justify-center sm:justify-start">
       {digits.map((d, i) => (
         <input
           key={i}
@@ -86,7 +86,7 @@ export function PinBoxInput({
           onChange={(e) => ubahDigit(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           onFocus={(e) => e.target.select()}
-          className="w-11 h-12 sm:w-12 sm:h-14 text-center text-lg font-semibold border rounded-lg focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:bg-gray-100"
+          className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg font-semibold border rounded-lg focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:bg-gray-100"
         />
       ))}
     </div>

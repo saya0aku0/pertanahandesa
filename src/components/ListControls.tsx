@@ -53,22 +53,22 @@ export function ListControls({
   return (
     <div className="bg-white border rounded-xl p-3 flex flex-col md:flex-row gap-3 md:items-center flex-wrap">
       {/* SearchBar */}
-      <div className="flex-1 min-w-[180px]">
+      <div className="flex-1 min-w-0 md:min-w-[180px]">
         <input
           value={searchValue}
           onChange={handleSearch}
           placeholder={searchPlaceholder}
-          className="w-full border rounded-lg p-3 min-h-[44px] text-sm"
+          className="w-full border rounded-lg p-3 min-h-[44px] text-base"
         />
       </div>
 
       {/* Filter */}
       {filters.map((f) => (
-        <div key={f.key} className="min-w-[150px]">
+        <div key={f.key} className="w-full sm:w-auto sm:min-w-[150px]">
           <select
             value={f.value}
             onChange={(e) => f.onChange(e.target.value)}
-            className="w-full border rounded-lg p-3 min-h-[44px] text-sm bg-white"
+            className="w-full border rounded-lg p-3 min-h-[44px] text-base bg-white"
             aria-label={f.label}
           >
             <option value="">{f.label}: Semua</option>
@@ -83,11 +83,11 @@ export function ListControls({
 
       {/* Sort By */}
       {sortOptions.length > 0 && onSortChange && (
-        <div className="flex gap-2 min-w-[180px]">
+        <div className="flex gap-2 w-full sm:w-auto sm:min-w-[180px]">
           <select
             value={sortValue}
             onChange={(e) => onSortChange(e.target.value)}
-            className="flex-1 border rounded-lg p-3 min-h-[44px] text-sm bg-white"
+            className="flex-1 min-w-0 border rounded-lg p-3 min-h-[44px] text-base bg-white"
             aria-label="Sort By"
           >
             {sortOptions.map((o) => (

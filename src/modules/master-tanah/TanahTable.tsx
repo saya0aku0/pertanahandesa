@@ -84,7 +84,7 @@ export function TanahTable() {
       key: 'lokasi',
       header: 'Lokasi Tanah',
       render: (r) => (
-        <div className="min-w-[200px] sm:min-w-[260px] whitespace-normal leading-snug">
+        <div className="whitespace-normal leading-snug md:min-w-[220px] lg:min-w-[280px]">
           {r.lokasi}
         </div>
       )

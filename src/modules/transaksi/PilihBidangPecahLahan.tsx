@@ -45,7 +45,7 @@ export function PilihBidangPecahLahan() {
         value={keyword}
         onChange={(e) => setKeyword(e.target.value)}
         placeholder="Cari No. Sertifikat / Lokasi / Pemilik..."
-        className="w-full border rounded-lg p-3 min-h-[44px] text-sm"
+        className="w-full border rounded-lg p-3 min-h-[44px] text-base"
         autoFocus
       />
       {searching && <p className="text-xs text-gray-400">Mencari...</p>}

@@ -158,3 +158,33 @@ input[type='checkbox'], input[type='radio'] {
     animation: none !important;
   }
 }
+
+/* =====================================================================
+   OPTIMASI MOBILE GLOBAL — berlaku untuk SEMUA form/elemen di aplikasi,
+   jadi tidak perlu diatur satu-satu di tiap komponen.
+   ===================================================================== */
+@media (max-width: 767px) {
+  /* Cegah Safari iOS otomatis zoom-in saat field text di-fokus (field wajib
+     >=16px, kalau kurang dari itu iOS anggap perlu di-zoom-kan). Berlaku untuk
+     SEMUA input teks/select/textarea, termasuk yang mungkin terlewat manual. */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Tombol & elemen interaktif minimal 44x44px (standar tap-target Apple/Google HIG),
+     jaga-jaga untuk tombol yang lupa diberi min-h-[44px] secara manual. */
+  button,
+  a[role='button'],
+  input[type='submit'],
+  input[type='button'] {
+    min-height: 44px;
+  }
+}
+
+/* Tabel lebar (banyak kolom) tetap bisa di-scroll horizontal di HP tanpa merusak
+   layout halaman — dibungkus lewat class ini di komponen Table. */
+.tabel-scroll-mobile {
+  -webkit-overflow-scrolling: touch;
+}

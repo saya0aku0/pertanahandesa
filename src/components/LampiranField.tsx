@@ -110,7 +110,7 @@ export function LampiranField({
               value={link}
               onChange={(e) => updateLink(idx, e.target.value)}
               placeholder="https://drive.google.com/..."
-              className="flex-1 border rounded-lg p-3 min-h-[44px] bg-white text-sm"
+              className="flex-1 border rounded-lg p-3 min-h-[44px] bg-white text-base"
             />
             <button
               type="button"

@@ -58,7 +58,7 @@ export function InstallPrompt() {
           bisa dibuka walau koneksi internet lagi lemah.
         </p>
       </div>
-      <div className="flex gap-2 shrink-0">
+      <div className="flex gap-2 shrink-0 flex-wrap">
         <button
           type="button"
           onClick={handleTutup}

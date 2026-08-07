@@ -8,7 +8,7 @@ import { UserForm } from './UserForm';
 import { deleteUser } from './user.service';
 import { AppUser } from '@/modules/auth/auth.types';
 
-const ROLE_LABEL: Record<string, string> = {
+export const ROLE_LABEL: Record<string, string> = {
   superadmin: 'Superadmin',
   owner: 'Petugas Utama',
   staff: 'Akun Cadangan (Emergency Access)'

@@ -43,6 +43,10 @@ service cloud.firestore {
       allow create: if isLoggedIn();
       allow read: if isLoggedIn();
     }
+
+    match /settings/{settingId} {
+      allow read, write: if isLoggedIn();
+    }
   }
 }
 ```
@@ -50,7 +54,11 @@ service cloud.firestore {
 Catatan: karena tidak ada RBAC (§4), rules ini hanya memastikan user sudah login
 dan field wajib tidak kosong / luas tidak negatif — bukan pembatasan hak akses antar role.
 
-## Catatan tambahan: collection `/logs`
+## Catatan tambahan: collection `/settings`
+
+Dipakai untuk menyimpan pengaturan KOP Surat (logo desa, nama desa, alamat — lihat
+`src/modules/pengaturan/kopSurat.service.ts`), disimpan sebagai 1 dokumen tunggal
+`settings/kopSurat` (bukan per-user, karena berlaku untuk seluruh aplikasi).
 
 Dipakai untuk mencatat riwayat login (lihat `src/modules/auth/loginLog.service.ts`,
 ditampilkan di halaman Pusat Bantuan). Query-nya sengaja HANYA filter 1 field

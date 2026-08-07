@@ -84,6 +84,19 @@ export function BantuanPage() {
         </Link>
       </section>
 
+      <section className="bg-white border rounded-xl p-4 space-y-2">
+        <h2 className="font-semibold text-sm text-gray-700">Setting KOP Surat</h2>
+        <p className="text-xs text-gray-500">
+          Atur logo desa, nama desa, dan alamat yang akan muncul sebagai kepala surat setiap
+          Export Laporan PDF.
+        </p>
+        <Link to="/pengaturan/kop-surat">
+          <Button type="button" variant="secondary">
+            🖼️ Atur KOP Surat &amp; Logo Desa
+          </Button>
+        </Link>
+      </section>
+
       <section className="bg-white border rounded-xl p-4 space-y-3">
         <h2 className="font-semibold text-sm text-gray-700">Riwayat Login Terakhir</h2>
         <p className="text-xs text-gray-500">

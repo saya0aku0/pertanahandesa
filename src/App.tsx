@@ -20,6 +20,7 @@ import {
 import { KelolaUserPage } from '@/modules/kelola-user/Pages';
 import { BantuanPage } from '@/modules/help/Pages';
 import { SerahTerimaPage } from '@/modules/help/SerahTerimaPage';
+import { KopSuratPage } from '@/modules/pengaturan/KopSuratPage';
 
 export default function App() {
   return (
@@ -57,6 +58,7 @@ export default function App() {
           {/* Menu 4: Pusat Bantuan */}
           <Route path="/bantuan" element={<BantuanPage />} />
           <Route path="/bantuan/serah-terima" element={<SerahTerimaPage />} />
+          <Route path="/pengaturan/kop-surat" element={<KopSuratPage />} />
 
           {/* Setting Profil Akun (dari AvatarMenu) */}
           <Route path="/profil" element={<ProfilPage />} />
